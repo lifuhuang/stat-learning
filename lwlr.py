@@ -34,6 +34,5 @@ def get_precision(X_train, y_train):
 if __name__ == '__main__':        
     X_train = np.fromfile(r'E:\data\x.dat', sep = ' ').reshape((-1, 2))
     y_train = np.fromfile(r'E:\data\y.dat', sep = ' ').reshape((-1, 1))
-    print("Precision on training set (without intercept term):", get_precision(X_train, y_train))
     X_train = np.hstack((np.ones((np.size(X_train, 0), 1)), X_train))
-    print("Precision on training set (with intercept term):", get_precision(X_train, y_train))
+    print("Precision on training set:", get_precision(X_train, y_train))
