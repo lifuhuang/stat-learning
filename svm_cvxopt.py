@@ -70,7 +70,7 @@ if __name__ == '__main__':
     Z = np.empty((sz, sz))
     for i in range(sz):
         for j in range(sz):
-            Z[i, j] = predict(np.array([[X[i][j]], [Y[i][j]]]), X_train, y_train, alpha, b, kernel)
+            Z[i, j] = predict(np.array([[X[i, j]], [Y[i, j]]]), X_train, y_train, alpha, b, kernel)
     
     plt.contour(X, Y, Z, levels = [0])
     plt.show()
