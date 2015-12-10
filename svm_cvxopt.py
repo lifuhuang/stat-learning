@@ -21,28 +21,27 @@ def train_svm_with_cvxopt(X, y, C, K = linear_kernel):
     P = np.empty((m, m))
     for i in range(m):
         for j in range(m):
-            P[i, j] = K(X[i].reshape(-1, 1), X[j].reshape(-1, 1))
+            P[i, j] = K(X[i, :, np.newaxis], X[j, :, np.newaxis])
     q = -np.ones(y.shape)
     G = np.vstack((np.identity(m), -np.identity(m)))
     h = np.vstack((C * np.ones((m, 1)), np.zeros((m, 1))))
     A = y.T
     b = np.ones((1, 1))    
     res = co.solvers.qp(co.matrix(P), co.matrix(q), co.matrix(G), co.matrix(h), co.matrix(A), co.matrix(b))    
-    alpha = np.array(res['x']).reshape(-1, 1)
-    w = np.sum(alpha * y * X, axis = 0).reshape((-1, 1))
-    b = - (w.T @ X[max(filter(lambda i: y[i] == -1, range(m)), key = lambda i: w.T @ X[i])].reshape(-1, 1) + 
-           w.T @ X[min(filter(lambda i: y[i] == 1, range(m)), key = lambda i: w.T @ X[i])].reshape(-1, 1)) / 2
+    alpha = np.array(res['x'])
+    w = np.sum(alpha * y * X, axis = 0)[:, np.newaxis]
+    b = - (w.T @ X[max(filter(lambda i: y[i] == -1, range(m)), key = lambda i: w.T @ X[i, :, np.newaxis]), :, np.newaxis] + 
+           w.T @ X[min(filter(lambda i: y[i] == 1, range(m)), key = lambda i: w.T @ X[i, :, np.newaxis]), :, np.newaxis]) / 2
            
     return (alpha, w, b)
 
 def predict(x, X_train, y_train, alpha, b, K = linear_kernel):
     m = np.size(X_train, 0)
     n = np.size(X_train, 1)
-
-    ans = b.copy()   
+    ans = b.copy()  
     for i in range(m):
-        ans += alpha[i] * y_train[i] * K(X_train[i].reshape(-1, 1), x)
-    return ans
+        ans += alpha[i] * y_train[i] * K(X_train[i, :, np.newaxis], x)
+    return float(ans)
     
 if __name__ == '__main__':    
     X_train = np.fromfile('x.dat', sep = ' ').reshape(-1, 2)
@@ -50,12 +49,12 @@ if __name__ == '__main__':
     
     m = np.size(X_train, 0)
     n = np.size(X_train, 1)
-    kernel = functools.partial(gaussian_kernel, tau = 0.2)
+    kernel = functools.partial(gaussian_kernel, tau = 0.25)
     alpha, w, b = train_svm_with_cvxopt(X_train, y_train, 0.5, kernel)
     print('w:', w, 'b:', b, sep = '\n')
     cnt = 0
     for i in range(m):
-        result = 1 if (predict(X_train[i].reshape(-1, 1), X_train, y_train, alpha, b, kernel) >= 0) else -1
+        result = 1 if (predict(X_train[i, :, np.newaxis], X_train, y_train, alpha, b, kernel) >= 0) else -1
         if result == y_train[i]:
             cnt += 1
     print('Precision:', cnt / m)
