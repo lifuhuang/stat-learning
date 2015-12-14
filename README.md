@@ -1,4 +1,4 @@
-# LeafLib 
+# LifLib 
 ###Machine learning algorithms implemented in python
 
 ###Code
