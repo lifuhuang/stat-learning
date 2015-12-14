@@ -3,9 +3,9 @@
 
 ###Code
 
-lwlr.py ----------------------------- Locally weighted logistic regression
+lwlr.py ------------------------------ Locally weighted logistic regression
 
-svm_cvxopt.py -------------------- SVM implemented by quadratic programming
+svm_cvxopt.py ------------------- SVM implemented by quadratic programming
 
 lifusvm.py -------------------------- SVM implemented by SMO algorithm
 
