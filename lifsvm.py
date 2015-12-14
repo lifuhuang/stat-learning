@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 """
-Created on Sun Dec 13 10:40:20 2015
+A SVM implementation based on SMO algorithm, which is invented by John Platt 
+from Microsoft Research. Please see his paper for reference.
 
 @author: Lifu Huang
 """
@@ -9,17 +10,13 @@ import numpy as np
 import matplotlib.pyplot as plt
 import functools
 
-class Lifusvm:
-    eps = 1e-3
+class lifsvm:
+    eps = 1e-7
     tol = 1e-3
     def __init__(self, X_train, y_train, C, kernel = None):
-        '''Initializes a new Lifusvm trained on given training set and parameters.
+        '''Initializes a new lifsvm trained on given training set and parameters.
         '''
-        if not kernel:
-            self.kernel = self.linear_kernel
-        else:
-            self.kernel = kernel
-            
+        self.kernel = kernel if kernel else self.linear_kernel
         self.c = C
         self.m, self.n = X_train.shape
         self.point = X_train
@@ -27,12 +24,17 @@ class Lifusvm:
         self.alpha = np.zeros((self.m, 1))
         self.b = 0
         self.error_cache = np.empty((self.m, 1))
-        for i in range(m):
-            self.error_cache[i] = self.hypothesis(self.point[i, :, np.newaxis]) - self.target[i]
-        
         self.main_routine()
-
+                
+    def get_error(self, i):
+        '''Returns the value of Ei, which equals the SVM output on X[i] minus y[i].
+        '''
+        self.error_cache[i] = self.hypothesis(self.point[i, :, np.newaxis]) - self.target[i]
+        return self.error_cache[i]
+        
     def take_step(self, i1, i2):
+        '''Makes joint optimization on alpha[i1] and alpha[i2].
+        '''
         if i1 == i2:
             return False
         alpha1, alpha2 = self.alpha[i1], self.alpha[i2]
@@ -43,16 +45,17 @@ class Lifusvm:
         else:
             l, h = max(0, alpha2 - alpha1), min(self.c, self.c + alpha2 - alpha1)                     
         if l == h:
-            return False                    
-        e1, e2 = self.error_cache[i1], self.error_cache[i2]
+            return False             
+        e1, e2 = self.get_error(i1), self.get_error(i2)
         k11 = self.kernel(self.point[i1, :, np.newaxis], self.point[i1, :, np.newaxis])
         k22 = self.kernel(self.point[i2, :, np.newaxis], self.point[i2, :, np.newaxis])
         k12 = self.kernel(self.point[i1, :, np.newaxis], self.point[i2, :, np.newaxis])
         eta = k11 + k22 - 2 * k12
-        if eta > 0:
-            a2 = alpha2 + y2 * (e1 - e2) / eta
-            a2 = max(min(a2, h), l)
+        if eta > 0 + eps:
+            a2 = self.clip(alpha2 + y2 * (e1 - e2) / eta, l, h)
         else:
+            #Case when eta < 0 (happens when kernel matrix is indefinite)
+            #       or eta = 0 (happens when phi(X[i1]) equals phi(X[i2]))
             f1 = y1 * (e1 - b) - alpha1 * k11 - s * alpha2 * k12
             f2 = y2 * (e2 - b) - s * alpha1 * k12 - alpha2 * k22
             l1 = alpha1 + s * (alpha2 - l)
@@ -72,12 +75,12 @@ class Lifusvm:
         b2 = float(-e2 - y1 * k12 * (a1 - alpha1) - y2 * k22 * (a2 - alpha2) + self.b)
         self.b = (b1 + b2) / 2
         self.alpha[i1], self.alpha[i2] = a1, a2
-        for i in range(m):
-            self.error_cache[i] = self.hypothesis(self.point[i, :, np.newaxis]) - self.target[i]
         return True
-    
+        
     def examine_example(self, i2):
-        e2 = self.error_cache[i2]
+        '''Inner loop of SMO.
+        '''
+        e2 = self.get_error(i2)
         r2 = e2 * self.target[i2]
         if (r2 < -self.tol and self.alpha[i2] < self.c - self.eps) or (r2 > self.tol and self.alpha[i2] > 0 + self.eps):
             i1 = max((i for i in range(m) if i != i2), key = lambda i: np.abs(self.error_cache[i] - e2))
@@ -86,23 +89,25 @@ class Lifusvm:
             start = np.random.randint(0, m)
             for delta in range(m):
                 i1 = (start + delta) % m
-                if 0 < self.alpha[i1] < self.c and self.take_step(i1, i2):
+                if i1 != i2 and 0 + self.eps < self.alpha[i1] < self.c - self.eps and self.take_step(i1, i2):
                     return True
             start = np.random.randint(0, m)
             for delta in range(m):
                 i1 = (start + delta) % m
-                if not (0 < self.alpha[i1] < self.c) and self.take_step(i1, i2):
+                if i1 != i2 and not (0 + self.eps < self.alpha[i1] < self.c - self.eps) and self.take_step(i1, i2):
                     return True    
         return False
     
     def main_routine(self):
+        '''Outer loop of SMO
+        '''
         examine_all = True
         modified = False
         times = 0
         while modified or examine_all:
             modified = 0
             for i in range(self.m):
-                if examine_all or (0 < self.alpha[i] < self.c):
+                if examine_all or (0 + self.eps < self.alpha[i] < self.c - self.eps):
                     if self.examine_example(i):
                         modified += 1                        
             print('iteration #', times, 'examine_all:', examine_all, 'modified: ', modified) 
@@ -138,14 +143,18 @@ class Lifusvm:
     def gaussian_kernel(x, z, tau):
         return np.exp(- np.linalg.norm(x - z) ** 2 / tau ** 2)
 
+    @staticmethod
+    def clip(val, l, h):
+        return max(min(val, h), l)
     
 if __name__ == '__main__':    
-    X_train = np.fromfile('x.dat', sep = ' ').reshape(-1, 2)
-    y_train = np.array(list(map(lambda x: x * 2 - 1, np.fromfile('y.dat', sep = ' ')))).reshape(-1, 1)
+    X_train = np.fromfile('data/x.dat', sep = ' ').reshape(-1, 2)
+    y_train = np.array(list(map(lambda x: x * 2 - 1, np.fromfile('data/y.dat', sep = ' ')))).reshape(-1, 1)
     
     m, n = X_train.shape
-    kernel = functools.partial(gaussian_kernel, tau = 0.25)
-    svm = Lifusvm(X_train, y_train, 1, kernel)
+    kernel = lifsvm.linear_kernel
+    #kernel = functools.partial(lifsvm.gaussian_kernel, tau = 0.25)
+    svm = lifsvm(X_train, y_train, 1, kernel)
     
     cnt = 0
     for i in range(m):
@@ -153,15 +162,14 @@ if __name__ == '__main__':
         if result == y_train[i]:
             cnt += 1
     print('Precision:', cnt / m)
-    
     for i in range(m):
         h = svm(X_train[i, :, np.newaxis])
         color = 'r' if y_train[i] == 1 else 'b'
-        if abs(y_train[i] * h - 1) <= svm.eps:
+        if abs(y_train[i] * h - 1) <= svm.tol:
             plt.plot(X_train[i, 0], X_train[i, 1], 'D' + color)
-        elif y_train[i] * h < 1 - svm.eps:
+        elif y_train[i] * h < 1 - svm.tol:
             plt.plot(X_train[i, 0], X_train[i, 1], 'x' + color)
-        elif y_train[i] * h > 1 + svm.eps:
+        elif y_train[i] * h > 1 + svm.tol:
             plt.plot(X_train[i, 0], X_train[i, 1], 'o' + color)
             
     sz = 50
