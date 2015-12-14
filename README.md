@@ -1,11 +1,12 @@
-# CS229 - Machine Learning
-My own implementation of homework assigned in Stanford CS229 Machine Learning (lecturer: Andrew Ng)
+# LeafLib ---- Machine learning algorithms implemented in python
 
-All programs are implemented in Python.
+###Code:
+lwlr.py       ---------------------- Locally weighted logistic regression
+svm_cvxopt.py ---------------------- SVM implemented by quadratic programming
+lifusvm.py    ---------------------- SVM implemented by SMO algorithm
 
-###Contents:
-Problem Set #1, problem 2, Locally weighted logistic regression:
-
-------------------------------------------------------------------- lwlr.py
+##data:
+x.dat         ---------------------- 63 * 2 feature set
+y.dat         ---------------------- 63 * 1 label set
 
 
