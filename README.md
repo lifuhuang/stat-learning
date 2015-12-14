@@ -1,5 +1,5 @@
 # LeafLib 
-###A Machine learning algorithms implemented in python
+###Machine learning algorithms implemented in python
 
 ###Code
 
