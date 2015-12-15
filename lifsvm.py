@@ -51,7 +51,7 @@ class lifsvm:
         k22 = self.kernel(self.point[i2, :, np.newaxis], self.point[i2, :, np.newaxis])
         k12 = self.kernel(self.point[i1, :, np.newaxis], self.point[i2, :, np.newaxis])
         eta = k11 + k22 - 2 * k12
-        if eta > 0 + eps:
+        if eta > 0 + self.eps:
             a2 = self.clip(alpha2 + y2 * (e1 - e2) / eta, l, h)
         else:
             #Case when eta < 0 (happens when kernel matrix is indefinite)
@@ -162,6 +162,7 @@ if __name__ == '__main__':
         if result == y_train[i]:
             cnt += 1
     print('Precision:', cnt / m)
+    
     for i in range(m):
         h = svm(X_train[i, :, np.newaxis])
         color = 'r' if y_train[i] == 1 else 'b'
@@ -171,7 +172,7 @@ if __name__ == '__main__':
             plt.plot(X_train[i, 0], X_train[i, 1], 'x' + color)
         elif y_train[i] * h > 1 + svm.tol:
             plt.plot(X_train[i, 0], X_train[i, 1], 'o' + color)
-            
+    
     sz = 50
     X, Y = np.meshgrid(np.linspace(-1, 1, sz), np.linspace(-1, 1, sz))
     Z = np.empty((sz, sz))
