@@ -28,8 +28,8 @@ def train(X_train, y_train, _lambda):
 if __name__ == '__main__':
     _lambda = 0.1
     
-    X_train = np.fromfile(r'data\l1ls\x.dat', sep = ' ')
-    y_train = np.fromfile(r'data\l1ls\y.dat', sep = ' ')
+    X_train = np.fromfile(r'data/l1ls/x.dat', sep = ' ')
+    y_train = np.fromfile(r'data/l1ls/y.dat', sep = ' ')
     m = np.size(y_train, 0)
     n = np.size(X_train) // m
 

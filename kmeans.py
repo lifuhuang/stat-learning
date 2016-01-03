@@ -24,6 +24,10 @@ def k_means(points, k):
 if __name__ == '__main__':
     X_train = np.fromfile('data/kmeans/x.dat', sep = ' ').reshape(-1, 2)
     m, n = X_train.shape
+    for i in range(m):
+        plt.plot(X_train[i, 0], X_train[i, 1], 'kx')
+    plt.show()
+    
     centroids, clusters = k_means(X_train, 3)
     print('Done!')
     markers = ['bx', 'rx', 'gx', 'yx']

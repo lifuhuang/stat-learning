@@ -32,7 +32,7 @@ def get_precision(X_train, y_train):
     return correct / m
 
 if __name__ == '__main__':        
-    X_train = np.fromfile(r'x.dat', sep = ' ').reshape((-1, 2))
-    y_train = np.fromfile(r'y.dat', sep = ' ').reshape((-1, 1))
+    X_train = np.fromfile(r'data/x.dat', sep = ' ').reshape((-1, 2))
+    y_train = np.fromfile(r'data/y.dat', sep = ' ').reshape((-1, 1))
     X_train = np.hstack((np.ones((np.size(X_train, 0), 1)), X_train))
     print("Precision on training set:", get_precision(X_train, y_train))
