@@ -1,5 +1,5 @@
 """
-Mixtures of Gaussians model implemented by EM algorithm.
+Mixture of Gaussians model implemented by EM algorithm.
 """
 
 import numpy as np
