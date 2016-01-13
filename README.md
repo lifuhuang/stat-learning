@@ -1,6 +1,7 @@
 LIFLIB 
 ====
-###LIFu's machine learning algorithm LIBrary (in Python)
+###LIFu's LIBrary of machine learning algorithms.
+(All algorithms in LifLib are implemented in Python. Enjoy!)
 
 Files
 ----
