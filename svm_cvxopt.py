@@ -53,8 +53,8 @@ def predict(x, X_train, y_train, alpha, b, kerneo = linear_kernel):
     return ans
     
 if __name__ == '__main__':    
-    X_train = np.fromfile('data/x.dat', sep = ' ').reshape(-1, 2)
-    y_train = np.array(list(map(lambda x: x * 2 - 1, np.fromfile('data/y.dat', sep = ' ')))).reshape(-1, 1)
+    X_train = np.fromfile('data/regression/x.dat', sep = ' ').reshape(-1, 2)
+    y_train = np.array(list(map(lambda x: x * 2 - 1, np.fromfile('data/regression/y.dat', sep = ' ')))).reshape(-1, 1)
     
     m, n = X_train.shape
     kernel = linear_kernel#functools.partial(gaussian_kernel, tau = 0.25)

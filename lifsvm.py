@@ -148,8 +148,8 @@ class lifsvm:
         return max(min(val, h), l)
     
 if __name__ == '__main__':    
-    X_train = np.fromfile('data/x.dat', sep = ' ').reshape(-1, 2)
-    y_train = np.array(list(map(lambda x: x * 2 - 1, np.fromfile('data/y.dat', sep = ' ')))).reshape(-1, 1)
+    X_train = np.fromfile('data/regression/x.dat', sep = ' ').reshape(-1, 2)
+    y_train = np.array(list(map(lambda x: x * 2 - 1, np.fromfile('data/regression/y.dat', sep = ' ')))).reshape(-1, 1)
     
     m, n = X_train.shape
     kernel = lifsvm.linear_kernel
