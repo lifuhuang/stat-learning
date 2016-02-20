@@ -1,20 +1,22 @@
-# LifLib 
-###Machine learning algorithms implemented in python
+LIFLIB 
+====
+###LIFu's LIBrary of machine learning algorithms.
+(All algorithms in LifLib are implemented in Python. Enjoy!)
 
-###Code
+Files
+----
 
-lwlr.py ------------------------------ Locally weighted logistic regression
+| File | Description |
+| --- | --- |
+|lwlr.py | Locally weighted logistic regression. |
+|svm_cvxopt.py | SVM implemented by quadratic programming. |
+|lifusvm.py | SVM implemented by SMO algorithm.  |
+|kmeans.py | K-means clustering algorithm.  |
+|MoG.py | Mixture of Gaussians model implemented by EM algorithm. |
+|l1ls.py | L1 Least Square algorithm. |
 
-svm_cvxopt.py ------------------- SVM implemented by quadratic programming
-
-lifusvm.py -------------------------- SVM implemented by SMO algorithm
 
 
-##data:
-
-x.dat -------------------------------- 63 * 2 feature set
-
-y.dat -------------------------------- 63 * 1 label set
 
 
 
