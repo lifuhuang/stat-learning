@@ -10,7 +10,6 @@ import os
 import pickle
 
 from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.feature_extraction.text import CountVectorizer
 
 class Utils:
     @staticmethod
@@ -53,8 +52,6 @@ class Utils:
 class TfidfClassifier:
     def __init__(self):
         self.fitted = False
-        self.idf = None
-        self.vocabulary = None
         self.idMapping = None
         self.tfidfMat = None
         
@@ -78,14 +75,13 @@ class TfidfClassifier:
             print 'Generating tf-idf matrix...' 
         tv = TfidfVectorizer()
         self.tfidfMat = tv.fit_transform(corpus)
+        self.vectorizer = tv
         if verbose:
             print 'Done! Generated a', self.tfidfMat.shape, 'matrix!'
 
         self.idMapping = dict()   
         for i in xrange(len(filePaths)):
             self.idMapping[idGenerator(filePaths[i])] = i
-        self.idf = tv.idf_
-        self.vocabulary = tv.vocabulary_
         self.fitted = True
         
     def check_fitted(self):        
@@ -95,13 +91,11 @@ class TfidfClassifier:
     def dump_parameters(self, target):
         self.check_fitted()
         with open(target, 'w') as f:
-            pickle.dump((self.vocabulary, self.idf, 
-                         self.idMapping, self.tfidfMat), f) 
+            pickle.dump((self.vectorizer, self.idMapping, self.tfidfMat), f) 
     
     def load_parameters(self, target):
         with open(target, 'r') as f:
-            (self.vocabulary, self.idf, 
-             self.idMapping, self.tfidfMat) = pickle.load(f) 
+            (self.vectorizer, self.idMapping, self.tfidfMat) = pickle.load(f) 
         self.fitted = True
         
     def get_feature_count(self):
@@ -114,7 +108,7 @@ class TfidfClassifier:
         
     def get_feature_names(self):
         self.check_fitted()
-        return self.vocabulary.keys()
+        return self.vectorizer.get_feature_names()
         
     def get_sample_ids(self):
         self.check_fitted()
@@ -122,15 +116,8 @@ class TfidfClassifier:
         
     def calculate_tfidf(self, text):
         self.check_fitted()
-        cv = CountVectorizer(vocabulary = self.vocabulary)
-        targetCount =  cv.fit_transform([' '.join(jieba.cut(text))]).toarray()
-        total = float(targetCount.sum())
-        if total == 0:
-            return targetCount
-        targetTf = targetCount / total
-        unnormalizedTfidf = np.multiply(targetTf, self.idf)
-        return unnormalizedTfidf / np.linalg.norm(unnormalizedTfidf, ord=2)
-
+        return self.vectorizer.transform([' '.join(jieba.cut(text))])
+        
     def get_sample_vector(self, sampleId):
         self.check_fitted()
         return self.tfidfMat[self.idMapping[sampleId], :].toarray()
@@ -149,14 +136,14 @@ class TfidfClassifier:
                       reverse = True)[:k]
 
 if __name__ == '__main__':  
-    options = ['test']
+    options = ['check']
     textFilePath = '/mnt/shared/ACL/Q.txt'
     parameterPath = '/mnt/shared/ACL/saves'
     questionPath = '/mnt/shared/ACL/questions'
     
     def check_tfidf_accuracy(qstDir, verbose = True):
         print 'Collecting question filenames...'
-        qstFilePaths = TfidfClassifier.collect_filePaths(qstDir)
+        qstFilePaths = Utils.collect_filePaths(qstDir)
         print 'Done! Collected', len(qstFilePaths), 'file path(s) in total.'
         
         cnt = 0
@@ -167,10 +154,10 @@ if __name__ == '__main__':
             print 'checking', qstFilePaths[i], 
             with open(qstFilePaths[i]) as f:
                 targetTfidf = c.calculate_tfidf(f.read())        
-            originalTfidf = c.get_sample_vector(c.short_id(qstFilePaths[i]))
-            print 'error:', np.linalg.norm(targetTfidf -originalTfidf, ord = 1),
+            originalTfidf = c.get_sample_vector(Utils.short_id(qstFilePaths[i]))
+            print 'error:', np.linalg.norm(targetTfidf -originalTfidf, ord = 1)
             if np.sum(np.abs(targetTfidf - originalTfidf) > 
-                    (targetTfidf + originalTfidf) * 0.05) == 0:
+                    (targetTfidf + originalTfidf) * 0.01) == 0:
                 cnt += 1
         print 'Final result:', cnt * 100/ len(qstFilePaths), '% are correct!'
 
