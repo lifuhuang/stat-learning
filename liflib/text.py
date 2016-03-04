@@ -12,14 +12,7 @@ import pickle
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.feature_extraction.text import CountVectorizer
 
-class TfidfClassifier:
-    def __init__(self):
-        self.fitted = False
-        self.idf = None
-        self.vocabulary = None
-        self.idMapping = None
-        self.tfidfMat = None
-        
+class Utils:
     @staticmethod
     def collect_filePaths(rootDir, mxNum = None):    
         result = []
@@ -56,20 +49,28 @@ class TfidfClassifier:
     @staticmethod
     def long_id(path):
         return path
-    
+ 
+class TfidfClassifier:
+    def __init__(self):
+        self.fitted = False
+        self.idf = None
+        self.vocabulary = None
+        self.idMapping = None
+        self.tfidfMat = None
+        
     def fit_sample_directory(self, sampleDir, mxNum = None,
                              idGenerator = None, verbose = True):
         if not idGenerator:
-            idGenerator = self.short_id
-        return self.fit_sample_files(self.collect_filePaths(sampleDir, mxNum),
+            idGenerator = Utils.short_id
+        return self.fit_sample_files(Utils.collect_filePaths(sampleDir, mxNum),
                                      idGenerator, verbose)
             
     def fit_sample_files(self, filePaths, idGenerator = None, verbose = True):
         if not idGenerator:
-            idGenerator = self.short_id
+            idGenerator = Utils.short_id
         if verbose:
             print 'Building corpus...'
-        corpus = self.get_corpus(filePaths, verbose)
+        corpus = Utils.get_corpus(filePaths, verbose)
         if verbose:
             print 'Done! get', len(corpus), 'sample(s) in total.'
         
