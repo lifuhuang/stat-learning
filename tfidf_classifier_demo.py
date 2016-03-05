@@ -7,8 +7,8 @@ Created on Sat Mar  5 11:24:37 2016
 
 import argparse
 import numpy as np
-from liflib.text import Utils
-from liflib.text import TfidfClassifier
+from liflib2.text import Utils
+from liflib2.text import TfidfClassifier
 
 def check_tfidf_accuracy(classifier, sample_dir, verbose = True):
     if verbose:
@@ -39,21 +39,23 @@ if __name__ == '__main__':
     ap = argparse.ArgumentParser(description = description, prog = prog_name)
     
     fit_or_load = ap.add_mutually_exclusive_group(required = True)    
-    fit_or_load.add_argument('--fit', '-f', action = 'store',
+    fit_or_load.add_argument('-f', '--fit', action = 'store',
                              dest = 'training_set_dir', 
-                             help = 'sample directory')
-    fit_or_load.add_argument('--load', '-l', action = 'store',
-                             dest = 'param_path', help = 'parameter file path')        
-    ap.add_argument('--dump', '-d', action = 'store', 
-                    dest = 'dump_path', help = 'dump to')
-    ap.add_argument('--check', '-c', action = 'store_true', dest = 'check',
-                    help = 'sample directory')
+                             help = 'train model with given files')
+    fit_or_load.add_argument('-l', '--load', action = 'store',
+                             dest = 'param_path', 
+                             help = 'load parameter from specific file path')        
+    ap.add_argument('-d', '--dump', action = 'store', dest = 'dump_path', 
+                    help = 'dump fitted parameters to specific path')
+    ap.add_argument('-c', '--check', action = 'store', dest = 'check_dir',
+                    help = 'check accuracy of calculated tfidf')
     ap.add_argument('--test', '-t', action = 'store', dest = 'test_file_path',
-                    help = 'test file path')                                 
-    ap.add_argument('--output', '-o', action = 'store', 
-                    dest = 'test_result_path', help = 'test result file path')     
-    ap.add_argument('--verbose', '-b', action = 'store_true', dest = 'verbose',
-                    help = 'verbose')  
+                    help = 'test data file')                                 
+    ap.add_argument('-o', '--output', action = 'store', 
+                    dest = 'test_result_path', 
+                    help = 'output test result to specific path')     
+    ap.add_argument('-v', '--verbose', action = 'store_true', dest = 'verbose',
+                    help = 'use verbose mode')  
     ap.set_defaults(verbose = True, test_result_path = 'test_result')
     args = ap.parse_args()
 
@@ -63,7 +65,7 @@ if __name__ == '__main__':
     if args.training_set_dir:  
         c.fit_sample_directory(args.training_set_dir, verbose = args.verbose)
         # dump fitted parameters to file        
-        if args.dump_dir:
+        if args.dump_path:
             c.dump_parameters(args.dump_path)           
     elif args.param_path:
         c.load_parameters(args.param_path)
@@ -84,6 +86,6 @@ if __name__ == '__main__':
             f.write('\n'.join(allResult))
 
     #check 
-    if args.check:
-        check_tfidf_accuracy(sample_dir = args.training_set_dir,
+    if args.check_dir:
+        check_tfidf_accuracy(classifier = c, sample_dir = args.check_dir,
                              verbose = args.verbose)   

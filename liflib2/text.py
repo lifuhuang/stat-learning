@@ -117,7 +117,7 @@ class TfidfClassifier:
         
     def calculate_tfidf(self, text):
         self.check_fitted()
-        return self.vectorizer.transform([' '.join(jieba.cut(text))])
+        return self.vectorizer.transform([' '.join(jieba.cut(text))]).toarray()
         
     def get_sample_vector(self, sample_id):
         self.check_fitted()
