@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 """
-This is a tfidf text classifier.
+This is the text processing part of liflib.
+
 @author Lifu Huang
 """
 
@@ -13,25 +14,25 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 
 class Utils:
     @staticmethod
-    def collect_filePaths(rootDir, mxNum = None):    
+    def collect_file_paths(root_dir, max_num = None):    
         result = []
         i = 0
-        for dirpath, dirnames, filenames in os.walk(rootDir):
+        for dirpath, dirnames, filenames in os.walk(root_dir):
             for filename in filenames:
                 i += 1
-                if mxNum and i > mxNum:  
+                if max_num and i > max_num:  
                     break
                 result.append(os.path.join(dirpath, filename))
         return result
         
     @staticmethod
-    def get_corpus(filePaths, verbose = True):   
+    def get_corpus(file_paths, verbose = True):   
         corpus = []
-        for i in xrange(len(filePaths)):
-            filePath = filePaths[i]
+        for i in xrange(len(file_paths)):
+            file_path = file_paths[i]
             if verbose:
-                print 'Processing', filePath, 
-            with open(filePath) as f:
+                print 'Processing', file_path, 
+            with open(file_path) as f:
                 corpus.append(' '.join(jieba.cut(f.read())))
             if verbose:
                 print 'Done'
@@ -52,36 +53,36 @@ class Utils:
 class TfidfClassifier:
     def __init__(self):
         self.fitted = False
-        self.idMapping = None
-        self.tfidfMat = None
+        self.id_mapping = None
+        self.tfidf_matrix = None
         
-    def fit_sample_directory(self, sampleDir, mxNum = None,
-                             idGenerator = None, verbose = True):
-        if not idGenerator:
-            idGenerator = Utils.short_id
-        return self.fit_sample_files(Utils.collect_filePaths(sampleDir, mxNum),
-                                     idGenerator, verbose)
+    def fit_sample_directory(self, sample_dir, max_num = None,
+                             id_generator = None, verbose = True):
+        if not id_generator:
+            id_generator = Utils.short_id
+        return self.fit_sample_files(Utils.collect_file_paths(sample_dir, max_num),
+                                     id_generator, verbose)
             
-    def fit_sample_files(self, filePaths, idGenerator = None, verbose = True):
-        if not idGenerator:
-            idGenerator = Utils.short_id
+    def fit_sample_files(self, file_paths, id_generator = None, verbose = True):
+        if not id_generator:
+            id_generator = Utils.short_id
         if verbose:
             print 'Building corpus...'
-        corpus = Utils.get_corpus(filePaths, verbose)
+        corpus = Utils.get_corpus(file_paths, verbose)
         if verbose:
             print 'Done! get', len(corpus), 'sample(s) in total.'
         
         if verbose:
             print 'Generating tf-idf matrix...' 
         tv = TfidfVectorizer()
-        self.tfidfMat = tv.fit_transform(corpus)
+        self.tfidf_matrix = tv.fit_transform(corpus)
         self.vectorizer = tv
         if verbose:
-            print 'Done! Generated a', self.tfidfMat.shape, 'matrix!'
+            print 'Done! Generated a', self.tfidf_matrix.shape, 'matrix!'
 
-        self.idMapping = dict()   
-        for i in xrange(len(filePaths)):
-            self.idMapping[idGenerator(filePaths[i])] = i
+        self.id_mapping = dict()   
+        for i in xrange(len(file_paths)):
+            self.id_mapping[id_generator(file_paths[i])] = i
         self.fitted = True
         
     def check_fitted(self):        
@@ -91,20 +92,20 @@ class TfidfClassifier:
     def dump_parameters(self, target):
         self.check_fitted()
         with open(target, 'w') as f:
-            pickle.dump((self.vectorizer, self.idMapping, self.tfidfMat), f) 
+            pickle.dump((self.vectorizer, self.id_mapping, self.tfidf_matrix), f) 
     
     def load_parameters(self, target):
         with open(target, 'r') as f:
-            (self.vectorizer, self.idMapping, self.tfidfMat) = pickle.load(f) 
+            (self.vectorizer, self.id_mapping, self.tfidf_matrix) = pickle.load(f) 
         self.fitted = True
         
     def get_feature_count(self):
         self.check_fitted()
-        return self.tfidfMat.shape[1]
+        return self.tfidf_matrix.shape[1]
         
     def get_sample_count(self):
         self.check_fitted()
-        return self.tfidfMat.shape[0]
+        return self.tfidf_matrix.shape[0]
         
     def get_feature_names(self):
         self.check_fitted()
@@ -112,68 +113,26 @@ class TfidfClassifier:
         
     def get_sample_ids(self):
         self.check_fitted()
-        return self.idMapping.keys()
+        return self.id_mapping.keys()
         
     def calculate_tfidf(self, text):
         self.check_fitted()
         return self.vectorizer.transform([' '.join(jieba.cut(text))])
         
-    def get_sample_vector(self, sampleId):
+    def get_sample_vector(self, sample_id):
         self.check_fitted()
-        return self.tfidfMat[self.idMapping[sampleId], :].toarray()
+        return self.tfidf_matrix[self.id_mapping[sample_id], :].toarray()
     
-    def calculate_similarity(self, text, sampleId):
+    def calculate_similarity(self, text, sample_id):
         self.check_fitted()
-        targetTfidf = self.calculate_tfidf(text)
-        sampleTfidf = self.get_sample_vector(sampleId)
-        return float(np.dot(targetTfidf, sampleTfidf.T))
+        target_tfidf = self.calculate_tfidf(text)
+        sample_tfidf = self.get_sample_vector(sample_id)
+        return float(np.dot(target_tfidf, sample_tfidf.T))
     
     def get_most_similar_samples(self, text, k = 1):
         self.check_fitted()
-        product = np.dot(self.tfidfMat.toarray(), self.calculate_tfidf(text).T)
+        product = np.dot(self.tfidf_matrix.toarray(), self.calculate_tfidf(text).T)
         return sorted(self.get_sample_ids(),
-                      key = (lambda id: product[self.idMapping[id]]), 
+                      key = (lambda id: product[self.id_mapping[id]]), 
                       reverse = True)[:k]
-
-if __name__ == '__main__':  
-    options = ['check']
-    textFilePath = '/mnt/shared/ACL/Q.txt'
-    parameterPath = '/mnt/shared/ACL/saves'
-    questionPath = '/mnt/shared/ACL/questions'
-    
-    def check_tfidf_accuracy(qstDir, verbose = True):
-        print 'Collecting question filenames...'
-        qstFilePaths = Utils.collect_filePaths(qstDir)
-        print 'Done! Collected', len(qstFilePaths), 'file path(s) in total.'
-        
-        cnt = 0
-        c = TfidfClassifier()
-        c.load_parameters(parameterPath)
-        
-        for i in xrange(len(qstFilePaths)):
-            print 'checking', qstFilePaths[i], 
-            with open(qstFilePaths[i]) as f:
-                targetTfidf = c.calculate_tfidf(f.read())        
-            originalTfidf = c.get_sample_vector(Utils.short_id(qstFilePaths[i]))
-            print 'error:', np.linalg.norm(targetTfidf -originalTfidf, ord = 1)
-            if np.sum(np.abs(targetTfidf - originalTfidf) > 
-                    (targetTfidf + originalTfidf) * 0.01) == 0:
-                cnt += 1
-        print 'Final result:', cnt * 100/ len(qstFilePaths), '% are correct!'
-
-    for option in options:
-        if option == 'dump':   
-            c = TfidfClassifier()
-            c.fit_sample_directory(questionPath)
-            c.dump_parameters(parameterPath) 
-        elif option == 'check':
-            check_tfidf_accuracy(qstDir = '/mnt/shared/ACL/questions/') 
-        elif option == 'test':
-            c = TfidfClassifier()
-            c.load_parameters(parameterPath)
-            with open(textFilePath) as f:
-                for i, line in enumerate(f):
-                    result = c.get_most_similar_samples(line, k = 5)
-                    for item in result:
-                        print item,
-                    print 
+                      
