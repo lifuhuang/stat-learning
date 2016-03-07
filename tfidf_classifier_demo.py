@@ -12,26 +12,26 @@ from liflib2.text import TfidfClassifier
 
 def check_tfidf_accuracy(classifier, sample_dir, verbose = True):
     if verbose:
-        print 'Collecting question filenames...'
-        qst_file_paths = Utils.collect_file_paths(sample_dir)
+        print 'Collecting sample filenames...'
+        sample_file_paths = Utils.collect_file_paths(sample_dir)
     if verbose:
-        print 'Done! Collected', len(qst_file_paths), 'file path(s) in total.'
+        print 'Done! Collected', len(sample_file_paths), 'file path(s) in total.'
         
     cnt = 0
     
-    for i in xrange(len(qst_file_paths)):
+    for i in xrange(len(sample_file_paths)):
         if verbose:
-            print 'checking', qst_file_paths[i], 
-        with open(qst_file_paths[i]) as f:
+            print 'checking', sample_file_paths[i], 
+        with open(sample_file_paths[i]) as f:
             targetTfidf = classifier.calculate_tfidf(f.read())        
         originalTfidf = classifier.get_sample_vector(
-            Utils.short_id(qst_file_paths[i]))
+            Utils.short_id(sample_file_paths[i]))
         if verbose:
             print 'error:', np.linalg.norm(targetTfidf -originalTfidf, ord = 1)
         if np.sum(np.abs(targetTfidf - originalTfidf) > 
                 (targetTfidf + originalTfidf) * 0.01) == 0:
             cnt += 1
-    print 'Final result:', cnt * 100/ len(qst_file_paths), '% are correct!'
+    print 'Final result:', cnt * 100/ len(sample_file_paths), '% are correct!'
 
 if __name__ == '__main__':      
     prog_name = 'TfidfClassifier Demo'
