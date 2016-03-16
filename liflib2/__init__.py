@@ -30,7 +30,7 @@ def sigmoid(x):
     """
     return 1.0 / (1.0 + np.exp(-x))
 
-def gradcheck_naive(f, x):
+def gradcheck_naive(f, x, verbose = False):
     """ 
     Gradient check for a function f 
     - f should be a function that takes a single argument and outputs the cost 
@@ -47,7 +47,9 @@ def gradcheck_naive(f, x):
     it = np.nditer(x, flags=['multi_index'], op_flags=['readwrite'])
     while not it.finished:
         ix = it.multi_index
-        
+        if verbose:
+            print 'Checking %s...' % ix,
+            
         x[ix] += h
         random.setstate(rndstate)  
         fxp = f(x)[0]
@@ -69,7 +71,8 @@ def gradcheck_naive(f, x):
             return
     
         it.iternext() # Step to next dimension
-
+        if verbose:
+            print 'pass'
     print "Gradient check passed!"    
 
 def load_saved_params():
@@ -92,17 +95,19 @@ def save_params(iter, params):
         pickle.dump(params, f)
         pickle.dump(random.getstate(), f)
 
-def sgd(f, x0, step, iterations, postprocessing = None, useSaved = False, 
-        PRINT_EVERY=10, ANNEAL_EVERY = 20000, SAVE_PARAMS_EVERY = 1000):
+def sgd(f, x0, tol = 1e-5, step_size = 0.3, 
+        max_iters = None, postprocessing = None, 
+        print_every = None, anneal_every = None, save_params_every = None):
     """ 
     Stochastic Gradient Descent 
     """
 
-    if useSaved:
+    if save_params_every:
         start_iter, oldx, state = load_saved_params()
         if start_iter > 0:
             x0 = oldx;
-            step *= 0.5 ** (start_iter / ANNEAL_EVERY)
+            if anneal_every:
+                step_size *= 0.5 ** (start_iter // anneal_every)
             random.setstate(state)
     else:
         start_iter = 0
@@ -112,14 +117,19 @@ def sgd(f, x0, step, iterations, postprocessing = None, useSaved = False,
     if not postprocessing:
         postprocessing = lambda x: x
     
-    for it in xrange(start_iter + 1, iterations + 1):
+    old_cost = float('inf')
+    it = start_iter + 1
+    while not max_iters or it <= max_iters:
         cost, grad = f(x)
-        x = postprocessing(x - step * grad)
-        if it % PRINT_EVERY == 0:
+        if abs(cost - old_cost) < tol:
+            break
+        x = postprocessing(x - step_size * grad)
+        if print_every and it % print_every == 0:
             print 'Iterated %d times, cost = %g' % (it, cost)
-        if useSaved and it % SAVE_PARAMS_EVERY == 0:
+        if save_params_every and it % save_params_every == 0:
             save_params(it, x)
-        if it % ANNEAL_EVERY == 0:
-            step *= 0.5
+        if anneal_every and it % anneal_every == 0:
+            step_size *= 0.5
+        it += 1
     
     return x

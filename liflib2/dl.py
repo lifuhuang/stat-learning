@@ -7,8 +7,10 @@ This is a temporary script file.
 
 import numpy as np
 import random
+import math
+import scipy as sp
 from __init__ import *
-    
+
 class DataSet:
     def __init__(self, ratio = (0.8, 0, 0.2)):
         """
@@ -41,7 +43,8 @@ class DataSet:
         self.n_samples = int(features.shape[0])
         self.n_training_samples = int(self.n_samples * self.ratio[0])
         self.n_cv_samples = int(self.n_samples * self.ratio[1])
-        self.n_test_samples = int(self.n_samples - self.n_training_samples - self.n_cv_samples)
+        self.n_test_samples = int(self.n_samples - self.n_training_samples 
+                                                 - self.n_cv_samples)
         
         shuffled_ids = [i for i in xrange(self.n_samples)]
         random.shuffle(shuffled_ids)
@@ -147,26 +150,56 @@ class SoftmaxNN:
         self.w = None
         self.b = None
         self.fitted = False
-            
-    def sgd_wrapper(self, theta, dataset, randomized = False):
+
+    def random_init(self, weight_filler = 'xavier', bias_filler = 'constant'):
+        self.w = []
+        self.b = []
+        for i in xrange(self.n_layers - 1):
+            if weight_filler == 'xavier':        
+                r = math.sqrt(6.0 / (self.s_layer[i] + self.s_layer[i+1]))
+                self.w.append(np.random.uniform(-r, r, (self.s_layer[i+1], 
+                                                        self.s_layer[i])))
+            elif weight_filler == 'constant':
+                self.w.append(np.zeros((self.s_layer[i+1], self.s_layer[i])))
+            elif weight_filler == 'randn':
+                self.w.append(np.random.randn(self.s_layer[i+1], 
+                                              self.s_layer[i]))
+            else:
+                raise ValueError('%s is not a valid weight_filler.' % 
+                                    weight_filler)
+        
+            if bias_filler == 'constant':
+                self.b.append(np.zeros(self.s_layer[i+1]))
+            elif bias_filler == 'randn':
+                self.b.append(np.random.randn(self.s_layer[i+1]))
+            else:
+                raise ValueError('%s is not a valid bias_filler.' % 
+                                    bias_filler)
+        
+                                            
+    def gd_wrapper(self, theta, dataset, batch_size = 50, randomized = True):
         """
         Wrapper used for stochastic gradient descent.
         """
         self.set_parameters(theta)
-        if randomized:
-            features, label = dataset.get_random_traing_sample()
-        else:
-            features, label = dataset.get_training_sample()
+        cost = 0
+        grad = np.zeros(self.get_parameter_count())
+        for i in xrange(batch_size):
+            if randomized:
+                features, label = dataset.get_random_training_sample()
+            else:
+                features, label = dataset.get_training_sample()
+                
+            target = np.zeros((self.s_layer[-1],))
+            target[label] = 1
             
-        target = np.zeros((self.s_layer[-1],))
-        target[label] = 1
-        
-        cost, grad_w, grad_b = self.feed_forward(features, target)
-        lst = []        
-        for i in xrange(self.n_layers - 1):
-            lst.append(grad_w[i].flatten())
-            lst.append(grad_b[i].flatten())
-        grad = np.concatenate(lst)
+            sp_cost, grad_w, grad_b = self.feed_forward(features, target)
+            lst = []        
+            for i in xrange(self.n_layers - 1):
+                lst.append(grad_w[i].flatten())
+                lst.append(grad_b[i].flatten())
+            cost += sp_cost / float(batch_size)
+            grad += np.concatenate(lst) / float(batch_size)
         return cost, grad
         
     def check_fitted(self):   
@@ -185,7 +218,7 @@ class SoftmaxNN:
         a.append(features)
         for i in xrange(self.n_layers - 1):
             if i < self.n_layers - 2:
-                a.append(sigmoid(self.w[i].dot(a[i]) + self.b[i]))
+                a.append(np.tanh(self.w[i].dot(a[i]) + self.b[i]))
             else:
                 a.append(softmax(self.w[i].dot(a[i]) + self.b[i]))
         return a
@@ -197,7 +230,7 @@ class SoftmaxNN:
         delta = [None for i in xrange(self.n_layers)]
         delta[-1] = a[-1] - target
         for i in xrange(self.n_layers - 2, 0, -1):
-            delta[i] = a[i] * (1 - a[i]) * (self.w[i].T.dot(delta[i+1]))
+            delta[i] = (1 - a[i] * a[i]) * (self.w[i].T.dot(delta[i+1]))
         
         grad_w = [np.outer(delta[i+1], a[i]) 
                     for i in xrange(self.n_layers - 1)]
@@ -236,16 +269,29 @@ class SoftmaxNN:
         """
         Returns a 1D array consist of all parameters in this NN.
         """
-        return np.concatenate(sum([w[i].flatten(), b[i].flatten()] 
-                                    for i in xrange(self.n_layers-1)))
+        lst = []   
+        for i in xrange(self.n_layers - 1):
+            lst.append(self.w[i].flatten())
+            lst.append(self.b[i].flatten())
+        return np.concatenate(lst)
         
-    def fit(self, dataset, n_iters = 1000, randomized = False):
+    def fit(self, dataset, f_min = sgd, init_options = {}, 
+            gd_wrapper_options = {}, 
+            f_min_options = {}):
         """
         Fits this NN to given features and labels.
-        """        
-        theta0 = np.random.randn(self.get_parameter_count())
-        sgd(lambda x: self.sgd_wrapper(x, dataset, randomized), theta0, 0.3, 
-            n_iters, None, False, PRINT_EVERY=10)
+        """      
+        self.random_init(**init_options)
+        theta = f_min(lambda x: 
+            self.gd_wrapper(x, dataset, **gd_wrapper_options), 
+            self.get_parameters(), 
+            **f_min_options)
+#        sp.optimize.minimize(self.sgd_wrapper, theta0,
+#                             args = (dataset, batch_size, randomized),
+#                             method = 'Newton-CG', jac = True,
+#                             tol = 1e-10,
+#                             options = {'disp': True})
+        self.set_parameters(theta)                  
         self.fitted = True
     
     def predict(self, features):
