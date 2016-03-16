@@ -64,6 +64,8 @@ if __name__ == '__main__':
     if args.layer:
         for h in args.layer:
             layers.append(h)
+    else:
+        layers.append(n_features)
     layers.append(n_classes)
     nn = SoftmaxNN(tuple(layers))    
     print 'A %d-layer neural network with layer size %s has been constructed.' % (len(layers), layers)
