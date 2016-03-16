@@ -5,7 +5,6 @@ Created on Mon Mar 14 16:13:24 2016
 @author: lifu
 """
 
-
 from liflib2.dl import SoftmaxNN
 from liflib2.dl import DataSet
 import numpy as np
