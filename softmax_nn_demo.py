@@ -18,9 +18,10 @@ if __name__ == '__main__':
     default_path_labels = 'y.txt'
     ap = argparse.ArgumentParser(description = description, prog = prog_name)
          
-    ap.add_argument('path_features', default = default_path_features)
-    ap.add_argument('path_labels', default = default_path_labels)
-    
+    ap.add_argument('-x', '--feature', dest = 'path_features', 
+                    default = default_path_features)
+    ap.add_argument('-y', '--labels', dest = 'path_labels', 
+                    default = default_path_labels)
     ap.add_argument('-t', '--tol', action = 'store', dest = 'tol', 
                     type = float, default = 1e-5,
                     help = 'tolerance for testing convergence')
