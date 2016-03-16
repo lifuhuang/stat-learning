@@ -133,3 +133,156 @@ def sgd(f, x0, tol = 1e-5, step_size = 0.3,
         it += 1
     
     return x
+
+
+class DataSet:
+    def __init__(self, ratio = (0.8, 0, 0.2)):
+        """
+        Initializes a Dataset. 
+        """        
+        self.ratio = ratio
+        if sum(self.ratio) != 1:
+            raise ValueError("tuple ratio must sum to 1")
+        
+        self.training_cnt = None
+        self.cv_cnt = None
+        self.test_cnt = None
+        
+        self.n_features = None
+        self.n_samples = None
+        self.n_label_classes = None
+        
+        self.n_training_samples = None
+        self.n_test_samples = None
+        self.n_cv_samples = None
+        
+        self.training_features = None
+        self.training_labels = None        
+        self.cv_features = None
+        self.cv_labels = None
+        self.test_features = None
+        self.test_labels = None
+        self.filled = False
+        
+        
+    def load_features_labels(self, features, labels):
+        """
+        Loads data to DataSet.
+        """
+        if features.shape[0] != labels.shape[0]:
+            raise ValueError("Inconcistent sample number!")
+        self.n_samples, self.n_features = features.shape
+        self.n_label_classes = np.unique(labels).size
+        
+        self.n_training_samples = int(self.n_samples * self.ratio[0])
+        self.n_cv_samples = int(self.n_samples * self.ratio[1])
+        self.n_test_samples = int(self.n_samples - self.n_training_samples 
+                                                 - self.n_cv_samples)
+        
+        shuffled_ids = [i for i in xrange(self.n_samples)]
+        random.shuffle(shuffled_ids)
+        
+        self.training_features = features[shuffled_ids[:
+            self.n_training_samples]]
+        self.training_labels = labels[shuffled_ids[:self.n_training_samples]]
+        
+        self.cv_features = features[shuffled_ids[self.n_training_samples:
+            self.n_training_samples+self.n_cv_samples]]
+        self.cv_labels = labels[shuffled_ids[self.n_training_samples:
+            self.n_training_samples+self.n_cv_samples]]
+        
+        self.test_features = features[shuffled_ids[-self.n_test_samples:]]
+        self.test_labels = labels[shuffled_ids[-self.n_test_samples:]]
+        
+        self.reset()
+        self.filled = True        
+   
+    def dump(self, path):
+        with open(path, 'w') as f:
+            pickle.dump(self, f)
+        
+    @staticmethod
+    def load_from_txt_files(feature_file_path, label_file_path):
+        """
+        Loads data from files.
+        """
+        dataset = DataSet()
+        dataset.load_features_labels(np.loadtxt(feature_file_path), 
+                                     np.loadtxt(label_file_path))
+        return dataset
+ 
+    @staticmethod    
+    def load(path):        
+        with open(path, 'r') as f:
+            ds = pickle.load(f)
+        return ds
+        
+    def check_filled(self):
+        """
+        Tests whether the DataSet has been filled with data.
+        """
+        if not self.filled:
+            raise Exception("Unfilled dataset, please load data first.")
+        
+    def reset(self):
+        """
+        Resets counter to zero.
+        """
+        self.cv_cnt = 0
+        self.training_cnt = 0
+        self.test_cnt = 0
+
+    def get_training_sample(self):
+        """
+        Gets a training sample in cyclic order.
+        """
+        self.check_filled()
+        features = self.training_features[self.training_cnt]
+        label = self.training_labels[self.training_cnt]        
+        self.training_cnt = (self.training_cnt + 1) % self.n_training_samples
+        return features, label        
+        
+    def get_random_training_sample(self):
+        """
+        Gets a training sample randomly.
+        """
+        self.check_filled()
+        idx = random.randint(0, self.n_training_samples - 1)
+        return self.training_features[idx], self.training_labels[idx]
+    
+    def get_cv_sample(self):
+        """
+        Gets a CV sample in cyclic order.
+        """
+        self.check_filled()
+        features = self.cv_features[self.cv_cnt]
+        label = self.cv_labels[self.cv_cnt]        
+        self.cv_cnt = (self.cv_cnt + 1) % self.n_cv_samples
+        return features, label            
+        
+    def get_random_cv_sample(self):
+        """
+        Gets a CV sample randomly.
+        """
+        self.check_filled()
+        idx = random.randint(0, self.n_cv_samples - 1)
+        return self.cv_features[idx], self.cv_labels[idx]
+        
+    def get_test_sample(self):
+        """
+        Gets a test sample in cyclic order.
+        """
+        self.check_filled()
+        features = self.test_features[self.test_cnt]
+        label = self.test_labels[self.test_cnt]        
+        self.test_cnt = (self.test_cnt + 1) % self.n_test_samples
+        return features, label            
+        
+    def get_random_test_sample(self):
+        """
+        Gets a test sample randomly.
+        """
+        self.check_filled()
+        idx = random.randint(0, self.n_test_samples - 1)
+        return self.test_features[idx], self.test_labels[idx]
+            
