@@ -50,7 +50,7 @@ if __name__ == '__main__':
                     type = int,
                     help = 'add one hidden layer with supplied size') 
     ap.add_argument('-p', '--plot', action = 'store_true', dest = 'plot',
-                    help = 'add one hidden layer with supplied size') 
+                    help = 'plot cost function') 
     args = ap.parse_args()
 
     dataset = DataSet.load(args.dataset) 
@@ -72,19 +72,19 @@ if __name__ == '__main__':
     gd_opt={'batch_size': args.batch_size, 
                         'randomized':args.random}
      
-    plt.axis([0, 500, 0, 10])              
+    plt.axis([0, 500, 0, 5])              
     plt.ion() 
     plt.show()
     axis = [0, 100], [0, 100]
     old_cost = None
-    
+    min_cost = float('inf')
     def callback(e):
         if e.it % args.save == 0:
             liflib2.save_params(e.it, e.x)
         if e.it % args.display == 0:
             print 'Iterateion %d: cost = %g' % (e.it, e.cost)
             if args.plot:
-                global old_cost
+                global old_cost, min_cost
                 if old_cost:
                     while e.it * 1.2 >= plt.xlim()[1]:
                         plt.xlim(xmax = plt.xlim()[1] * 1.2)
@@ -92,6 +92,11 @@ if __name__ == '__main__':
                         plt.ylim(ymax = plt.ylim()[1] * 1.2)
                     plt.plot([e.it - args.display, e.it], 
                              [old_cost, e.cost], 'r-')
+                    if e.cost < min_cost:
+                        plt.plot(e.it, e.cost, 'b.')
+                        min_cost = e.cost
+                    
+                    plt.title('cost: %g, min: %g' % (e.cost, min_cost))
                     plt.draw()
                     plt.pause(0.1)
                 old_cost = e.cost
