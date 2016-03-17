@@ -6,9 +6,7 @@ This is a temporary script file.
 """
 
 import numpy as np
-import random
 import math
-import scipy as sp
 from __init__ import *
 
 class SoftmaxNN:   
@@ -18,34 +16,31 @@ class SoftmaxNN:
         """
         self.n_layers = len(layers)
         self.layer_size = tuple(layers)
-        self.w = None
-        self.b = None
+        self.w = [None] * (self.n_layers - 1)
+        self.b = [None] * (self.n_layers - 1)
         self.fitted = False
 
     def random_init(self, weight_filler = 'xavier', bias_filler = 'constant'):
-        self.w = []
-        self.b = []
         for i in xrange(self.n_layers - 1):
             if weight_filler == 'xavier':        
                 r = math.sqrt(6.0 / (self.layer_size[i] 
                                     + self.layer_size[i+1]))
-                self.w.append(np.random.uniform(-r, r, 
-                                                (self.layer_size[i+1], 
-                                                 self.layer_size[i])))
+                self.w[i] = np.random.uniform(-r, r, (self.layer_size[i+1], 
+                                                        self.layer_size[i]))
             elif weight_filler == 'constant':
-                self.w.append(np.zeros((self.layer_size[i+1], 
-                                        self.layer_size[i])))
+                self.w[i] = np.zeros((self.layer_size[i+1], 
+                                        self.layer_size[i]))
             elif weight_filler == 'randn':
-                self.w.append(np.random.randn(self.layer_size[i+1], 
-                                              self.layer_size[i]))
+                self.w[i] = np.random.randn(self.layer_size[i+1], 
+                                              self.layer_size[i])
             else:
                 raise ValueError('%s is not a valid weight_filler.' % 
                                     weight_filler)
         
             if bias_filler == 'constant':
-                self.b.append(np.zeros(self.layer_size[i+1]))
+                self.b[i] = np.zeros(self.layer_size[i+1])
             elif bias_filler == 'randn':
-                self.b.append(np.random.randn(self.layer_size[i+1]))
+                self.b[i] = np.random.randn(self.layer_size[i+1])
             else:
                 raise ValueError('%s is not a valid bias_filler.' % 
                                     bias_filler)
@@ -101,10 +96,10 @@ class SoftmaxNN:
         """
         Calculates the gradients of w and b using BP algorithm.
         """   
-        delta = [None for i in xrange(self.n_layers)]
+        delta = [None] * self.n_layers
         delta[-1] = a[-1] - target
         for i in xrange(self.n_layers - 2, 0, -1):
-            delta[i] = (1 - a[i] * a[i]) * (self.w[i].T.dot(delta[i+1]))
+            delta[i] = (1 - a[i] ** 2) * (self.w[i].T.dot(delta[i+1]))
         
         grad_w = [np.outer(delta[i+1], a[i]) 
                     for i in xrange(self.n_layers - 1)]
@@ -121,24 +116,20 @@ class SoftmaxNN:
         """
         Gets the total number of all parameters in this NN.
         """
-        return sum((self.layer_size[i+1] * (self.layer_size[i] + 1))
+        return sum((self.w[i].size + self.b[i].size)
                     for i in xrange(self.n_layers - 1))
             
     def set_parameters(self, theta):
         """
         Sets parameters of this NN from argument theta.
         """
-        self.w = []
-        self.b = []
         p = 0
         for i in xrange(self.n_layers - 1):
-            self.w.append((theta[p:p+self.layer_size[i+1] * self.layer_size[i]]
-                            .reshape(self.layer_size[i+1], 
-                                     self.layer_size[i])))
+            self.w[i] = (theta[p:p+self.layer_size[i+1] * self.layer_size[i]]
+                            .reshape(self.layer_size[i+1], self.layer_size[i]))
             p += self.layer_size[i+1] * self.layer_size[i]
-            self.b.append(theta[p:p+self.layer_size[i+1]])
+            self.b[i] = theta[p:p+self.layer_size[i+1]]
             p += self.layer_size[i+1]
-        
         
     def get_parameters(self):
         """
@@ -161,11 +152,6 @@ class SoftmaxNN:
             self.gd_wrapper(x, dataset, **gd_wrapper_options), 
             self.get_parameters(), 
             **f_min_options)
-#        sp.optimize.minimize(self.sgd_wrapper, theta0,
-#                             args = (dataset, batch_size, randomized),
-#                             method = 'Newton-CG', jac = True,
-#                             tol = 1e-10,
-#                             options = {'disp': True})
         self.set_parameters(theta)                  
         self.fitted = True
     
@@ -175,4 +161,3 @@ class SoftmaxNN:
         """
         self.check_fitted()
         return self.forward_propagate(features)[-1]
-        

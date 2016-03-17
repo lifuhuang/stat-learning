@@ -95,14 +95,21 @@ def save_params(iter, params):
         pickle.dump(params, f)
         pickle.dump(random.getstate(), f)
 
-def sgd(f, x0, tol = 1e-5, step_size = 0.3, 
-        max_iters = None, postprocessing = None, 
-        print_every = None, anneal_every = None, save_params_every = None):
+class IterInfo:
+    def __init__(self, it, x, cost, grad):
+        self.it = it
+        self.x = x
+        self.cost = cost
+        self.grad = grad
+        
+def sgd(f, x0, tol = 1e-5, step_size = 0.3, max_iters = None, 
+        anneal_every = None, use_save = True,
+        postprocessing = None, callback = None):
     """ 
     Stochastic Gradient Descent 
     """
 
-    if save_params_every:
+    if use_save:
         start_iter, oldx, state = load_saved_params()
         if start_iter > 0:
             x0 = oldx;
@@ -124,14 +131,12 @@ def sgd(f, x0, tol = 1e-5, step_size = 0.3,
         if abs(cost - old_cost) < tol:
             break
         x = postprocessing(x - step_size * grad)
-        if print_every and it % print_every == 0:
-            print 'Iterated %d times, cost = %g' % (it, cost)
-        if save_params_every and it % save_params_every == 0:
-            save_params(it, x)
+        if callback:
+            callback(type('IterInfo', (), 
+                          {'it':it, 'x':x, 'cost':cost, 'grad':grad})())
         if anneal_every and it % anneal_every == 0:
             step_size *= 0.5
         it += 1
-    
     return x
 
 
