@@ -53,6 +53,8 @@ if __name__ == '__main__':
                     help = 'plot cost function') 
     ap.add_argument('-c', '--check', action = 'store_true', dest = 'check',
                     help = 'check precision without training')
+    ap.add_argument('-g', '--adagrad', action = 'store_true', dest = 'adagrad',
+                    help = 'use adagrad')
     args = ap.parse_args()
 
     dataset = DataSet.load(args.dataset) 
@@ -88,10 +90,10 @@ if __name__ == '__main__':
                 n_correct += 1
                 
         print 'For test set: total: %d, correct: %d, precision = %g%%' % (dataset.n_test_samples, n_correct, n_correct * 100.0 / dataset.n_test_samples)
-    else:
+    else:     
         gd_opt={'batch_size': args.batch_size, 
-                            'randomized':args.random}
-         
+                'randomized':args.random}
+
         old_cost = None
         min_cost = float('inf')
         max_cost = float('-inf')
@@ -101,45 +103,45 @@ if __name__ == '__main__':
             plt.axis([0, 500, 0, 5])
             plt.show()
         
-        def callback(e):
-            if e.it % args.save == 0:
-                liflib2.save_params(e.it, e.x)
-            if e.it % args.display == 0:
-                print 'Iterateion %d: cost = %g' % (e.it, e.cost)
+        def callback(state):
+            if state.it % args.save == 0:
+                liflib2.save_iter_state(state)
+            if state.it % args.display == 0:
+                print 'Iterateion %d: cost = %g' % (state.it, state.cost)
                 if args.plot:
                     global old_cost, min_cost, max_cost
                     #adjust axis
-                    while e.it * 1.2 > plt.xlim()[1]:
-                            plt.xlim(xmax = e.it * 1.2)
-                    if e.cost >= plt.ylim()[1]:
-                        plt.ylim(ymax = e.cost * 1.05)
+                    while state.it * 1.2 > plt.xlim()[1]:
+                            plt.xlim(xmax = state.it * 1.2)
+                    if state.cost >= plt.ylim()[1]:
+                        plt.ylim(ymax = state.cost * 1.05)
                     # plot min/max point
-                    if e.cost < min_cost:
-                        plt.plot(e.it, e.cost, 'g.')
-                        min_cost = e.cost
-                    elif e.cost > max_cost:                    
-                        plt.plot(e.it, e.cost, 'r.')
-                        max_cost = e.cost
-                        
+                    if state.cost < min_cost:
+                        plt.plot(state.it, state.cost, 'go')
+                        min_cost = state.cost
+                    elif state.cost > max_cost:                    
+                        plt.plot(state.it, state.cost, 'ro')
+                        max_cost = state.cost
                     # plot title
-                    plt.title('cost: %g, min: %g' % (e.cost, min_cost))                
+                    plt.title('cost: %g, min: %g' % (state.cost, min_cost))                
                     # plot lines
                     if old_cost:
-                        line = 'r-' if e.cost > old_cost else 'g-'
-                        plt.plot([e.it - args.display, e.it], 
-                                 [old_cost, e.cost], line)
+                        line = 'r-' if state.cost > old_cost else 'g-'
+                        plt.plot([state.it - args.display, state.it], 
+                                 [old_cost, state.cost], line)
                     plt.draw()
                     plt.pause(0.1)
                     # record old cost
-                    old_cost = e.cost
+                    old_cost = state.cost
             
         f_min_opt = {'max_iters': args.max_iters,
-                         'tol': args.tol, 
-                         'step_size': args.step, 
-                         'anneal_every': args.anneal,
-                         'use_save': True,
-                         'max_iters': args.max_iters,
-                         'callback': callback}
+                     'tol': args.tol, 
+                     'step_size': args.step, 
+                     'anneal_every': args.anneal,
+                     'use_save': True,
+                     'max_iters': args.max_iters,
+                     'callback': callback,
+                     'use_adagrad': args.adagrad}
         try:
             t1 = timeit.time.time()
             nn.fit(dataset, gd_wrapper_options = gd_opt, f_min_options = f_min_opt)

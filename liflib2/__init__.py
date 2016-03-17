@@ -75,70 +75,71 @@ def gradcheck_naive(f, x, verbose = False):
             print 'pass'
     print "Gradient check passed!"    
 
-def load_saved_params():
+# class for storing iteration information when doing SGD
+IterState = type('IterState', (), {})
+
+def load_iter_state():
     """
     A helper function that loads previously saved parameters and resets 
     iteration start 
     """
-    st, params, state = 0, None, None
-    for f in glob.glob("saved_params_*.npy"):
-        st = max(st, int(op.splitext(op.basename(f))[0].split("_")[2]))
+    it = 0
+    for f in glob.glob("saved_iter_state_*.npy"):
+        it = max(it, int(op.splitext(op.basename(f))[0].split("_")[3]))
             
-    if st > 0:
-        with open("saved_params_%d.npy" % st, "r") as f:
-            params = pickle.load(f)
+    if it > 0:
+        with open("saved_iter_state_%d.npy" % it, "r") as f:
             state = pickle.load(f)
-    return st, params, state
-    
-def save_params(iter, params):
-    with open("saved_params_%d.npy" % iter, "w") as f:
-        pickle.dump(params, f)
-        pickle.dump(random.getstate(), f)
-
-class IterInfo:
-    def __init__(self, it, x, cost, grad):
-        self.it = it
-        self.x = x
-        self.cost = cost
-        self.grad = grad
+            return state
+    else:
+        return None
+        
+def save_iter_state(state):
+    with open("saved_iter_state_%d.npy" % state.it, "w") as f:
+        pickle.dump(state, f)
         
 def sgd(f, x0, tol = 1e-5, step_size = 0.3, max_iters = None, 
-        anneal_every = None, use_save = True,
-        postprocessing = None, callback = None):
+        anneal_every = None, use_save = True, 
+        callback = None, use_adagrad = False):
     """ 
     Stochastic Gradient Descent 
     """
-
+    # use saved state or init a new state
+    state = None 
     if use_save:
-        start_iter, oldx, state = load_saved_params()
-        if start_iter > 0:
-            x0 = oldx;
-            if anneal_every:
-                step_size *= 0.5 ** (start_iter // anneal_every)
-            random.setstate(state)
-    else:
-        start_iter = 0
+        state = load_iter_state()
+        
+    if not state:
+        state = IterState()
+        state.it = 0
+        state.x = x0
+        if use_adagrad:
+            state.adagrad_cache = np.zeros(x0.shape)
+    if anneal_every:
+        step_size *= 0.5 ** (state.it // anneal_every)
     
-    x = x0
-    
-    if not postprocessing:
-        postprocessing = lambda x: x
-    
+    # do all job over 'state'
     old_cost = float('inf')
-    it = start_iter + 1
-    while max_iters == None or it <= max_iters:
-        cost, grad = f(x)
-        if abs(cost - old_cost) < tol:
-            break
-        x = postprocessing(x - step_size * grad)
+    while max_iters == None or state.it + 1 <= max_iters:
+        state.it += 1
+        state.cost, state.grad = f(state.x)
+        if abs(state.cost - old_cost) < tol:
+            break        
+        
+        # do gradient descent        
+        if use_adagrad:
+            state.adagrad_cache += state.grad ** 2
+            state.x -= (step_size * state.grad
+                            / np.sqrt(state.adagrad_cache + 1e-8))
+        else:
+            state.x -= step_size * state.grad
+            
+        # invoke callback function
         if callback:
-            callback(type('IterInfo', (), 
-                          {'it':it, 'x':x, 'cost':cost, 'grad':grad})())
-        if anneal_every and it % anneal_every == 0:
-            step_size *= 0.5
-        it += 1
-    return x
-
+            callback(state)
+        if anneal_every and state.it % anneal_every == 0:
+            step_size *= 0.5    
+    return state.x
 
 class DataSet:
     def __init__(self, ratio = (0.8, 0, 0.2)):
@@ -203,13 +204,16 @@ class DataSet:
         self.filled = True        
    
     def dump(self, path):
+        """
+        Dumps this DataSet to standard DataSet file.
+        """
         with open(path, 'w') as f:
             pickle.dump(self, f)
         
     @staticmethod
     def load_from_txt_files(feature_file_path, label_file_path):
         """
-        Loads data from files.
+        Loads data from raw feature file and label file.
         """
         dataset = DataSet()
         dataset.load_features_labels(np.loadtxt(feature_file_path), 
@@ -217,7 +221,10 @@ class DataSet:
         return dataset
  
     @staticmethod    
-    def load(path):        
+    def load(path):    
+        """
+        Loads data from standard DataSet file.
+        """
         with open(path, 'r') as f:
             ds = pickle.load(f)
         return ds
