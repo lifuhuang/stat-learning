@@ -126,7 +126,7 @@ def sgd(f, x0, tol = 1e-5, step_size = 0.3, max_iters = None,
     
     old_cost = float('inf')
     it = start_iter + 1
-    while not max_iters or it <= max_iters:
+    while max_iters == None or it <= max_iters:
         cost, grad = f(x)
         if abs(cost - old_cost) < tol:
             break
