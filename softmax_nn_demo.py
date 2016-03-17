@@ -75,7 +75,6 @@ if __name__ == '__main__':
     plt.axis([0, 500, 0, 5])              
     plt.ion() 
     plt.show()
-    axis = [0, 100], [0, 100]
     old_cost = None
     min_cost = float('inf')
     def callback(e):
@@ -85,20 +84,23 @@ if __name__ == '__main__':
             print 'Iterateion %d: cost = %g' % (e.it, e.cost)
             if args.plot:
                 global old_cost, min_cost
+                # plot min point
+                if e.cost < min_cost:
+                    plt.plot(e.it, e.cost, 'b.')
+                    min_cost = e.cost
+                # plot title
+                plt.title('cost: %g, min: %g' % (e.cost, min_cost))                
+                # plot lines
                 if old_cost:
                     while e.it * 1.2 >= plt.xlim()[1]:
                         plt.xlim(xmax = plt.xlim()[1] * 1.2)
-                    while e.cost * 1.2 >= plt.ylim()[1]:
-                        plt.ylim(ymax = plt.ylim()[1] * 1.2)
+                    if e.cost >= plt.ylim()[1]:
+                        plt.ylim(ymax = plt.ylim()[1] + 1)
                     plt.plot([e.it - args.display, e.it], 
                              [old_cost, e.cost], 'r-')
-                    if e.cost < min_cost:
-                        plt.plot(e.it, e.cost, 'b.')
-                        min_cost = e.cost
-                    
-                    plt.title('cost: %g, min: %g' % (e.cost, min_cost))
-                    plt.draw()
-                    plt.pause(0.1)
+                plt.draw()
+                plt.pause(0.1)
+                # record old cost
                 old_cost = e.cost
         
     f_min_opt = {'max_iters': args.max_iters,
