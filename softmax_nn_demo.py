@@ -77,6 +77,7 @@ if __name__ == '__main__':
     plt.show()
     old_cost = None
     min_cost = float('inf')
+    
     def callback(e):
         if e.it % args.save == 0:
             liflib2.save_params(e.it, e.x)
@@ -84,6 +85,11 @@ if __name__ == '__main__':
             print 'Iterateion %d: cost = %g' % (e.it, e.cost)
             if args.plot:
                 global old_cost, min_cost
+                #adjust axis
+                while e.it * 1.2 > plt.xlim()[1]:
+                        plt.xlim(xmax = e.it * 1.2)
+                if e.cost >= plt.ylim()[1]:
+                    plt.ylim(ymax = e.cost * 1.05)
                 # plot min point
                 if e.cost < min_cost:
                     plt.plot(e.it, e.cost, 'b.')
@@ -92,10 +98,6 @@ if __name__ == '__main__':
                 plt.title('cost: %g, min: %g' % (e.cost, min_cost))                
                 # plot lines
                 if old_cost:
-                    while e.it * 1.2 >= plt.xlim()[1]:
-                        plt.xlim(xmax = plt.xlim()[1] * 1.2)
-                    if e.cost >= plt.ylim()[1]:
-                        plt.ylim(ymax = plt.ylim()[1] + 1)
                     plt.plot([e.it - args.display, e.it], 
                              [old_cost, e.cost], 'r-')
                 plt.draw()
@@ -119,6 +121,7 @@ if __name__ == '__main__':
         t2 = timeit.time.time()        
         print 'Training process last for %g seconds in total' % (t2 - t1)
     
+    # test precision
     if nn.fitted:
         n_correct = 0
         for i in xrange(dataset.n_training_samples):
@@ -126,7 +129,7 @@ if __name__ == '__main__':
             if np.argmax(nn.predict(features)) == label:
                 n_correct += 1
                 
-        print 'For training set: total: %d, correct: %d, accuracy = %g%%' % (dataset.n_training_samples, n_correct, n_correct * 100.0 / dataset.n_training_samples)
+        print 'For training set: total: %d, correct: %d, precision = %g%%' % (dataset.n_training_samples, n_correct, n_correct * 100.0 / dataset.n_training_samples)
         
         n_correct = 0
         
@@ -135,4 +138,4 @@ if __name__ == '__main__':
             if np.argmax(nn.predict(features)) == label:
                 n_correct += 1
                 
-        print 'For test set: total: %d, correct: %d, accuracy = %g%%' % (dataset.n_test_samples, n_correct, n_correct * 100.0 / dataset.n_test_samples)
+        print 'For test set: total: %d, correct: %d, precision = %g%%' % (dataset.n_test_samples, n_correct, n_correct * 100.0 / dataset.n_test_samples)
