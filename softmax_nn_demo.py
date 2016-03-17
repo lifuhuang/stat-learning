@@ -38,8 +38,8 @@ if __name__ == '__main__':
                     dest = 'step', default = 1.0,
                     help = 'step size of sgd [default:1.0]')
     ap.add_argument('-a', '--anneal', action = 'store', dest = 'anneal',
-                    type = int, default = 10000,
-                    help = 'decrease step size every period of time [default:10000]') 
+                    type = int, default = 5000,
+                    help = 'decrease step size every period of time [default:5000]') 
     ap.add_argument('-d', '--display', action = 'store', dest = 'display',
                     type = int, default = 100,
                     help = 'display information every period of time [default:100]') 
