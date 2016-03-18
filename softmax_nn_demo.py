@@ -51,10 +51,15 @@ if __name__ == '__main__':
                     help = 'add one hidden layer with supplied size') 
     ap.add_argument('-p', '--plot', action = 'store_true', dest = 'plot',
                     help = 'plot cost function') 
-    ap.add_argument('-c', '--check', action = 'store_true', dest = 'check',
-                    help = 'check precision without training')
-    ap.add_argument('-g', '--adagrad', action = 'store_true', dest = 'adagrad',
+    ap.add_argument('--adagrad', action = 'store_true', dest = 'adagrad',
                     help = 'use adagrad')
+    ap.add_argument('--l2', action = 'store', dest = 'l2',
+                    type = float, default = 0, 
+                    help = 'specify the coefficient of L2 regularization term. [default: 0]')
+    ap.add_argument('--test', action = 'store_true', dest = 'test',
+                    help = 'test precision')
+    ap.add_argument('--check', action = 'store_true', dest = 'check',
+                    help = 'do gradient check without training')
     args = ap.parse_args()
 
     dataset = DataSet.load(args.dataset) 
@@ -71,9 +76,15 @@ if __name__ == '__main__':
     layers.append(dataset.n_label_classes)
     nn = SoftmaxNN(tuple(layers))    
     print 'A %d-layer neural network with layer size %s has been constructed.' % (nn.n_layers, nn.layer_size)
-    #liflib2.gradcheck_naive(lambda x: nn.gd_wrapper(x, dataset, 10, True), np.random.randn(nn.get_parameter_count()), verbose = False)
     
-    if args.check:
+    if args.check:    
+        nn.random_init()
+        liflib2.gradcheck_naive(lambda x: nn.objective(x, dataset, 10, 
+                                                         regularization = 'l2', 
+                                                         _lambda = 0.1), 
+                                nn.get_parameters(), 
+                                verbose = True)    
+    elif args.test:
         nn.fit(dataset, f_min_options = {'max_iters': 0})
         n_correct = 0
         for i in xrange(dataset.n_training_samples):
@@ -91,8 +102,12 @@ if __name__ == '__main__':
                 
         print 'For test set: total: %d, correct: %d, precision = %g%%' % (dataset.n_test_samples, n_correct, n_correct * 100.0 / dataset.n_test_samples)
     else:     
-        gd_opt={'batch_size': args.batch_size, 
+        obj_opt={'batch_size': args.batch_size, 
                 'randomized':args.random}
+        if args.l2:            
+            obj_opt['regularization'] = 'l2'
+            obj_opt['_lambda'] = args.l2
+            
 
         old_cost = None
         min_cost = float('inf')
@@ -144,7 +159,7 @@ if __name__ == '__main__':
                      'use_adagrad': args.adagrad}
         try:
             t1 = timeit.time.time()
-            nn.fit(dataset, gd_wrapper_options = gd_opt, f_min_options = f_min_opt)
+            nn.fit(dataset, obj_options = obj_opt, f_min_options = f_min_opt)
         except KeyboardInterrupt:
             print 'Terminated by key interrupt'
         finally:

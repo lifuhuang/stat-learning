@@ -46,7 +46,8 @@ class SoftmaxNN:
                                     bias_filler)
         
                                             
-    def gd_wrapper(self, theta, dataset, batch_size = 50, randomized = True):
+    def objective(self, theta, dataset, batch_size = 50, randomized = True,
+                  regularization = None, _lambda = 0):
         """
         Wrapper used for stochastic gradient descent.
         """
@@ -69,6 +70,13 @@ class SoftmaxNN:
                 lst.append(grad_b[i].flatten())
             cost += sp_cost / float(batch_size)
             grad += np.concatenate(lst) / float(batch_size)
+        if regularization:
+            regularization = regularization.lower()
+            if regularization == 'l2':
+                cost += 0.5 * _lambda * np.sum(theta ** 2)
+                grad += _lambda * theta
+            else:
+                raise ValueError('Unknown regularization: %s' % regularization)
         return cost, grad
         
     def check_fitted(self):   
@@ -141,15 +149,17 @@ class SoftmaxNN:
             lst.append(self.b[i].flatten())
         return np.concatenate(lst)
         
-    def fit(self, dataset, f_min = sgd, init_options = {}, 
-            gd_wrapper_options = {}, 
+    def fit(self, dataset, 
+            f_min = sgd, 
+            init_options = {}, 
+            obj_options = {}, 
             f_min_options = {}):
         """
         Fits this NN to given features and labels.
         """      
         self.random_init(**init_options)
         theta = f_min(lambda x: 
-            self.gd_wrapper(x, dataset, **gd_wrapper_options), 
+            self.objective(x, dataset, **obj_options), 
             self.get_parameters(), 
             **f_min_options)
         self.set_parameters(theta)                  

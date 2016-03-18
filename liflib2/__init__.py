@@ -76,6 +76,7 @@ def gradcheck_naive(f, x, verbose = False):
     print "Gradient check passed!"    
 
 # class for storing iteration information when doing SGD
+# it, x, cost, grad, [adagrad_cache]
 IterState = type('IterState', (), {})
 
 def load_iter_state():
