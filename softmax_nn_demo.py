@@ -37,9 +37,6 @@ if __name__ == '__main__':
     ap.add_argument('-s', '--step', action = 'store', type = float,
                     dest = 'step', default = 1.0,
                     help = 'step size of sgd [default:1.0]')
-    ap.add_argument('-a', '--anneal', action = 'store', dest = 'anneal',
-                    type = int, default = 10000,
-                    help = 'decrease step size every period of time [default:10000]') 
     ap.add_argument('-d', '--display', action = 'store', dest = 'display',
                     type = int, default = 100,
                     help = 'display information every period of time [default:100]') 
@@ -51,8 +48,11 @@ if __name__ == '__main__':
                     help = 'add one hidden layer with supplied size') 
     ap.add_argument('-p', '--plot', action = 'store_true', dest = 'plot',
                     help = 'plot cost function') 
+                    
     ap.add_argument('--adagrad', action = 'store_true', dest = 'adagrad',
                     help = 'use adagrad')
+    ap.add_argument('--anneal', action = 'store', dest = 'anneal', type = int,
+                    help = 'decrease step size every period of time [default: None]') 
     ap.add_argument('--l2', action = 'store', dest = 'l2',
                     type = float, default = 0, 
                     help = 'specify the coefficient of L2 regularization term. [default: 0]')
@@ -152,11 +152,15 @@ if __name__ == '__main__':
         f_min_opt = {'max_iters': args.max_iters,
                      'tol': args.tol, 
                      'step_size': args.step, 
-                     'anneal_every': args.anneal,
                      'use_save': True,
                      'max_iters': args.max_iters,
                      'callback': callback,
+                     'anneal_every': args.anneal,
                      'use_adagrad': args.adagrad}
+                     
+        if args.adagrad and args.anneal:
+            print 'WARNING: both annealing and adagrad are turned on.'
+            
         try:
             t1 = timeit.time.time()
             nn.fit(dataset, obj_options = obj_opt, f_min_options = f_min_opt)
