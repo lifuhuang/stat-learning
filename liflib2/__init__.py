@@ -19,8 +19,8 @@ def softmax(x):
         x_exp = np.exp(x - np.max(x))
         return x_exp / np.sum(x_exp)
     elif x.ndim == 2:
-        x_exp = np.exp(x - np.max(x, axis = 1).reshape(-1, 1))
-        return x_exp / np.sum(x_exp, axis = 1).reshape(-1, 1)
+        x_exp = np.exp(x - np.max(x, axis = 1, keepdims = True))
+        return x_exp / np.sum(x_exp, axis = 1, keepdims = True)
     else:
         raise Exception("Wrong dimension!")
 

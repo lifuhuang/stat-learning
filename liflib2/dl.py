@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
-"""
+'''
 Spyder Editor
 
 This is a temporary script file.
-"""
+'''
 
 import numpy as np
 import math
@@ -11,9 +11,9 @@ from __init__ import *
 
 class SoftmaxNN:   
     def __init__(self, layers):
-        """
+        '''
         Initializes a Softmax neural network. 
-        """
+        '''
         self.n_layers = len(layers)
         self.layer_size = tuple(layers)
         self.w = [None] * (self.n_layers - 1)
@@ -48,9 +48,9 @@ class SoftmaxNN:
                                             
     def objective(self, theta, dataset, batch_size = 50, randomized = True,
                   regularization = None, _lambda = 0):
-        """
+        '''
         Wrapper used for stochastic gradient descent.
-        """
+        '''
         self.set_parameters(theta)
         cost = 0
         grad = np.zeros(self.get_parameter_count())
@@ -80,17 +80,17 @@ class SoftmaxNN:
         return cost, grad
         
     def check_fitted(self):   
-        """
+        '''
         Checks whether the model has been fitted.
-        """
+        '''
         if not self.fitted:
             raise Exception('Model cannot be used before fitted to a dataset.')
             
             
     def forward_propagate(self, features):
-        """
+        '''
         Calculates the "a" matrices for all layers.
-        """
+        '''
         a = []
         a.append(features)
         for i in xrange(self.n_layers - 1):
@@ -101,9 +101,9 @@ class SoftmaxNN:
         return a
             
     def back_propagate(self, a, target):
-        """
+        '''
         Calculates the gradients of w and b using BP algorithm.
-        """   
+        '''   
         delta = [None] * self.n_layers
         delta[-1] = a[-1] - target
         for i in xrange(self.n_layers - 2, 0, -1):
@@ -121,16 +121,16 @@ class SoftmaxNN:
         return cost, grad_w, grad_b
     
     def get_parameter_count(self):
-        """
+        '''
         Gets the total number of all parameters in this NN.
-        """
+        '''
         return sum((self.w[i].size + self.b[i].size)
                     for i in xrange(self.n_layers - 1))
             
     def set_parameters(self, theta):
-        """
+        '''
         Sets parameters of this NN from argument theta.
-        """
+        '''
         p = 0
         for i in xrange(self.n_layers - 1):
             self.w[i] = (theta[p:p+self.layer_size[i+1] * self.layer_size[i]]
@@ -140,9 +140,9 @@ class SoftmaxNN:
             p += self.layer_size[i+1]
         
     def get_parameters(self):
-        """
+        '''
         Returns a 1D array consist of all parameters in this NN.
-        """
+        '''
         lst = []   
         for i in xrange(self.n_layers - 1):
             lst.append(self.w[i].flatten())
@@ -154,9 +154,9 @@ class SoftmaxNN:
             init_options = {}, 
             obj_options = {}, 
             f_min_options = {}):
-        """
+        '''
         Fits this NN to given features and labels.
-        """      
+        '''      
         self.random_init(**init_options)
         theta = f_min(lambda x: 
             self.objective(x, dataset, **obj_options), 
@@ -166,8 +166,8 @@ class SoftmaxNN:
         self.fitted = True
     
     def predict(self, features):
-        """
+        '''
         Returns the probability of input being in each class given features.
-        """
+        '''
         self.check_fitted()
         return self.forward_propagate(features)[-1]

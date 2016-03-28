@@ -30,8 +30,13 @@ if __name__ == '__main__':
                     help = 'number of question clusters')
     ap.add_argument(dest = 'n_ans_clusters', type = int,
                     help = 'number of answer clusters')               
-    ap.add_argument('-t', '--tmatrix', dest = 'tmatrix', action = 'store',
+    ap.add_argument('-t', '--tmatrix', dest = 'tmatrix', 
+                    action = 'store', default = 'txt', 
                     help = 'path to output the transit matrix.')
+    ap.add_argument('-r', '--raw', dest = 'raw', 
+                    action = 'store_true',
+                    help = 'also generate clustered raw text.')
+                                        
                     
     args = ap.parse_args()
     
@@ -56,7 +61,8 @@ if __name__ == '__main__':
     print 'Finish clustering questions, inertia = %d' % km_qst.inertia_
     clustered_qst = [[] for i in xrange(args.n_qst_clusters)]    
     for i in xrange(len(questions)):
-        clustered_qst[km_qst.labels_[i]].append(str(i))
+        sample = '%d %s'% (i, questions[i]) if args.raw else str(i)        
+        clustered_qst[km_qst.labels_[i]].append(sample)
     
     question_cluster_dir = os.path.join(args.output_dir, 'question_clusters/')
     if not os.path.exists(question_cluster_dir):
@@ -78,7 +84,8 @@ if __name__ == '__main__':
     print 'Finish clustering answers, inertia = %d' % km_ans.inertia_
     clustered_ans = [[] for i in xrange(args.n_ans_clusters)]
     for i in xrange(len(answers)):
-        clustered_ans[km_ans.labels_[i]].append(str(i))
+        sample = '%d %s'% (i, answers[i]) if args.raw else str(i)
+        clustered_ans[km_ans.labels_[i]].append(sample)
     
     answer_cluster_dir = os.path.join(args.output_dir, 'answer_clusters/')
     if not os.path.exists(answer_cluster_dir):

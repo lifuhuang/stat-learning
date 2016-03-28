@@ -5,7 +5,6 @@ Created on Fri Mar  4 18:26:40 2016
 @author: lifu
 """
 
-
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.cluster import KMeans
 import jieba
