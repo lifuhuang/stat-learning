@@ -53,6 +53,7 @@ if __name__ == '__main__':
     X_qst = tv_qst.fit_transform(map(lambda t: ' '.join(jieba.cut(t)), questions))
     km_qst = KMeans(n_clusters = args.n_qst_clusters)
     km_qst.fit(X_qst)      
+    print 'Finish clustering questions, inertia = %d' % km_qst.inertia_
     clustered_qst = [[] for i in xrange(args.n_qst_clusters)]    
     for i in xrange(len(questions)):
         clustered_qst[km_qst.labels_[i]].append(str(i))
@@ -74,6 +75,7 @@ if __name__ == '__main__':
     X_ans = tv_ans.fit_transform(map(lambda t: ' '.join(jieba.cut(t)), answers))
     km_ans = KMeans(n_clusters = args.n_ans_clusters)
     km_ans.fit(X_ans)  
+    print 'Finish clustering answers, inertia = %d' % km_ans.inertia_
     clustered_ans = [[] for i in xrange(args.n_ans_clusters)]
     for i in xrange(len(answers)):
         clustered_ans[km_ans.labels_[i]].append(str(i))
