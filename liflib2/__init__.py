@@ -10,6 +10,55 @@ import random
 import cPickle as pickle
 import glob
 import os.path as op
+import math
+
+def make_onehot(i, n):
+    """
+    Makes a array with ith element being one, others zero.
+    """
+    y = np.zeros(n)
+    y[i] = 1
+    return y
+
+def random_weight_matrix(m, n):
+    r = math.sqrt(6.0 / (m + n))
+    return np.random.uniform(-r, r, (m, n))
+    
+class MultinomialSampler(object):
+    """
+    Fast (O(log n)) sampling from a discrete probability
+    distribution, with O(n) set-up time.
+    """
+
+    def __init__(self, p, verbose=False):
+        p = p.astype(float) / sum(p)
+        self._cdf = np.cumsum(p)
+
+    def sample(self, k=1):
+        rs = random.random(k)
+        # binary search to get indices
+        return np.searchsorted(self._cdf, rs)
+
+    def __call__(self, **kwargs):
+        return self.sample(**kwargs)
+
+    def reconstruct_p(self):
+        """
+        Return the original probability vector.
+        Helpful for debugging.
+        """
+        p = np.zeros(len(self._cdf))
+        p[0] = self._cdf[0]
+        p[1:] = (self._cdf[1:] - self._cdf[:-1])
+        return p
+
+
+def multinomial_sample(p):
+    """
+    Wrapper to generate a single sample,
+    using the above class.
+    """
+    return MultinomialSampler(p).sample(1)[0]
 
 def softmax(x):
     """ 
@@ -18,11 +67,9 @@ def softmax(x):
     if x.ndim == 1:
         x_exp = np.exp(x - np.max(x))
         return x_exp / np.sum(x_exp)
-    elif x.ndim == 2:
+    else:
         x_exp = np.exp(x - np.max(x, axis = 1, keepdims = True))
         return x_exp / np.sum(x_exp, axis = 1, keepdims = True)
-    else:
-        raise Exception("Wrong dimension!")
 
 def sigmoid(x):
     """

@@ -5,7 +5,7 @@ Created on Mon Mar 14 16:13:24 2016
 @author: lifu
 """
 
-from liflib2.dl import SoftmaxNN
+from liflib2.dl import SoftmaxMLP
 from liflib2.dl import DataSet
 import liflib2
 import numpy as np
@@ -14,8 +14,8 @@ import timeit
 import matplotlib.pyplot as plt
 
 if __name__ == '__main__':
-    prog_name = 'Softmax Neural Network Demo'
-    description = 'This is a demo program for SoftmaxNN in liflib.dl.'
+    prog_name = 'Softmax MLP Demo'
+    description = 'This is a demo program for SoftmaxMLP in liflib.dl.'
     
     ap = argparse.ArgumentParser(description = description, prog = prog_name)
          
@@ -74,7 +74,7 @@ if __name__ == '__main__':
     else:
         layers.append(max(dataset.n_features, dataset.n_label_classes))
     layers.append(dataset.n_label_classes)
-    nn = SoftmaxNN(tuple(layers))    
+    nn = SoftmaxMLP(tuple(layers))    
     print 'A %d-layer neural network with layer size %s has been constructed.' % (nn.n_layers, nn.layer_size)
     
     if args.check:    
