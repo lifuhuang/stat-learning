@@ -7,7 +7,9 @@ Created on Fri Mar  4 18:26:40 2016
 
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.cluster import KMeans
+from sklearn.cluster import AffinityPropagation
 import jieba
+import numpy as np
 import argparse
 import os
 
@@ -27,14 +29,20 @@ if __name__ == '__main__':
                     help = 'directory of the clustered result')
     ap.add_argument(dest = 'n_clusters', type = int,
                     help = 'number of clusters')
+    ap.add_argument(dest = 'n_dims', type = int,
+                    help = 'dimensions of word space')
     args = ap.parse_args()
     
     with open(args.input_path) as f:
         text = f.read()
     questions, answers = extract_qa_pairs(text)
 
-    tv = TfidfVectorizer()
+    tv = TfidfVectorizer()    
     sparse_X = tv.fit_transform(map(lambda t: ' '.join(jieba.cut(t)), answers))
+    X = sparse_X.toarray()
+    U, s, Vt = np.linalg.svd(X)
+    X = X.dot(U[:, args.n_dims])
+    
     km = KMeans(n_clusters = args.n_clusters)
     km.fit(sparse_X)
     
