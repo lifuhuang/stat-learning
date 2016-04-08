@@ -6,6 +6,7 @@ This is a temporary script file.
 '''
 
 import numpy as np
+import itertools
 from nnbase import NNBase
 from __init__ import *
 
@@ -305,12 +306,14 @@ class SoftmaxRNN(NNBase):
             J = total cross-entropy loss of generated sequence
         """
 
-        J = 0 # total loss
+        J = 0
+        h = [np.zeros(d) for d in self.layer_dims[:-1]]
         ys = [init]
-        h = np.zeros(self.hdim)
         while ys[-1] != end:
-            h = sigmoid(self.params.H.dot(h) + self.sparams.L[ys[-1]])
-            p = softmax(self.params.U.dot(h))
+            h[0] = make_onehot(ys[-1], self.layer_dims[0])
+            for l in xrange(1, self.n_layers - 1):
+                h[l] = sigmoid(self.H[l].dot(h[l]) + self.W[l].dot(h[l-1]) + self.b[l])
+            p = softmax(self.W[self.n_layers-1].dot(h[self.n_layers-2]) + self.b[self.n_layers-1])
             ys.append(multinomial_sample(p))
-            J += -log(p[ys[-1]])
+            J += -np.log(p[ys[-1]])
         return ys, J

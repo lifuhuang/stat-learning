@@ -35,7 +35,7 @@ class MultinomialSampler(object):
         self._cdf = np.cumsum(p)
 
     def sample(self, k=1):
-        rs = random.random(k)
+        rs = np.random.random(k)
         # binary search to get indices
         return np.searchsorted(self._cdf, rs)
 
