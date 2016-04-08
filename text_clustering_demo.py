@@ -29,7 +29,7 @@ if __name__ == '__main__':
                     help = 'directory of the clustered result')
     ap.add_argument(dest = 'n_clusters', type = int,
                     help = 'number of clusters')
-    ap.add_argument(dest = 'n_dims', type = int,
+    ap.add_argument('--n_dims', type = int, 
                     help = 'dimensions of word space')
     args = ap.parse_args()
     
