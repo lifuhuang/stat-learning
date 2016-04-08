@@ -33,8 +33,7 @@ X = np.array(map(lambda seq:seq[:-1], seqs), dtype=object)
 Y = np.array(map(lambda seq:seq[1:], seqs), dtype=object)
 model.train_sgd(X, Y, idxiter=model.randomiter(100000, len(X), 1), printevery=100, costevery=1000)
 
-while True:
+for i in xrange(5):
     st, loss = model.generate_sequence(word_to_num[u'<s>'], word_to_num[u'</s>'])
-    if loss < 20 and len(st) > 10:
-        print ''.join(map(num_to_word.__getitem__, st)), loss
-        break
+    print ''.join(map(num_to_word.__getitem__, st)), loss
+    

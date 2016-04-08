@@ -30,7 +30,7 @@ if __name__ == '__main__':
                     help = 'directory of the clustered result')
     ap.add_argument(dest = 'n_clusters', type = int,
                     help = 'number of clusters')
-    ap.add_argument('--n_dims', type = int, 
+    ap.add_argument('--ndims', dest = 'n_dims', type = int, 
                     help = 'dimensions of word space')
     args = ap.parse_args()
     
@@ -39,12 +39,12 @@ if __name__ == '__main__':
     questions, answers = extract_qa_pairs(text)
 
     tv = TfidfVectorizer()    
-    X = tv.fit_transform(map(lambda t: ' '.join(jieba.cut(t)), answers))
+    X = tv.fit_transform(' '.join(jieba.cut(ans)) for ans in answers)
     if args.n_dims:
         print 'Reducing dimension from %d to %d...' % (X.shape[1], 
                                                        args.n_dims),
         U, s, Vt = sp.sparse.linalg.svds(X, k=args.n_dims)
-        X = X.dot(U)
+        X = X.dot(Vt.T)
         print 'Done!'
     
     print 'Clustering...',
