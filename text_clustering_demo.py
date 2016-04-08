@@ -10,6 +10,7 @@ from sklearn.cluster import KMeans
 from sklearn.cluster import AffinityPropagation
 import jieba
 import numpy as np
+import scipy as sp
 import argparse
 import os
 
@@ -40,9 +41,10 @@ if __name__ == '__main__':
     tv = TfidfVectorizer()    
     X = tv.fit_transform(map(lambda t: ' '.join(jieba.cut(t)), answers))
     if args.n_dims:
-        print 'Reducing dimension from %d to %d...' % (X.shape[1], args.n_dims),
-        U, s, Vt = np.linalg.svd(X)
-        X = X.dot(U[:, args.n_dims])
+        print 'Reducing dimension from %d to %d...' % (X.shape[1], 
+                                                       args.n_dims),
+        U, s, Vt = sp.sparse.linalg.svds(X, k=args.n_dims)
+        X = X.dot(U)
         print 'Done!'
     
     print 'Clustering...',
