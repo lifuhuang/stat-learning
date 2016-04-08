@@ -38,13 +38,17 @@ if __name__ == '__main__':
     questions, answers = extract_qa_pairs(text)
 
     tv = TfidfVectorizer()    
-    sparse_X = tv.fit_transform(map(lambda t: ' '.join(jieba.cut(t)), answers))
-    X = sparse_X.toarray()
-    U, s, Vt = np.linalg.svd(X)
-    X = X.dot(U[:, args.n_dims])
+    X = tv.fit_transform(map(lambda t: ' '.join(jieba.cut(t)), answers)).toarray()
+    if args.n_dims:
+        print 'Reducing dimension from %d to %d...' % (X.shape[1], args.n_dims),
+        U, s, Vt = np.linalg.svd(X)
+        X = X.dot(U[:, args.n_dims])
+        print 'Done!'
     
+    print 'Clustering...',
     km = KMeans(n_clusters = args.n_clusters)
-    km.fit(sparse_X)
+    km.fit(X)
+    print 'Done!'
     
     clustered_ans = [[] for i in xrange(args.n_clusters)]
     clustered_qst = [[] for i in xrange(args.n_clusters)]
