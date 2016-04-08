@@ -38,7 +38,7 @@ if __name__ == '__main__':
     questions, answers = extract_qa_pairs(text)
 
     tv = TfidfVectorizer()    
-    X = tv.fit_transform(map(lambda t: ' '.join(jieba.cut(t)), answers)).toarray()
+    X = tv.fit_transform(map(lambda t: ' '.join(jieba.cut(t)), answers))
     if args.n_dims:
         print 'Reducing dimension from %d to %d...' % (X.shape[1], args.n_dims),
         U, s, Vt = np.linalg.svd(X)
