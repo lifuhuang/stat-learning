@@ -1,12 +1,17 @@
 # -*- coding: utf-8 -*-
 '''
-Spyder Editor
+Deep learning module of liflib.
 
-This is a temporary script file.
+Consisting of:
+
+SoftmaxMLP: Softmax MultiLayer Percepton
+SoftmaxRNN: Softmax Recurrent Neural Network
+RNNLM: A language model based on SoftmaxRNN
 '''
 
 import numpy as np
 import itertools
+import jieba
 from nnbase import NNBase
 from __init__ import *
 
@@ -184,7 +189,16 @@ class SoftmaxRNN(NNBase):
         rseed : seed for randomization
     """
 
-    def __init__(self, layer_dims, alpha=0.005, rseed=10):        
+    def __init__(self, layer_dims, activation="relu", 
+                 h_filler="identity", w_filler="xavier", 
+                 alpha=0.005, rseed=10, grad_clipping = True):
+        self._grad_clipping = grad_clipping
+                     
+        if activation not in ACTIVATIONS:
+            raise ValueError('Unsupported activation: %s' % activation)
+        self._activation = ACTIVATIONS[activation]
+        self._derivative = DERIVATIVES[activation]
+        
         self.layer_dims = layer_dims
         self.n_layers = len(layer_dims)
         param_dims = dict()
@@ -198,11 +212,11 @@ class SoftmaxRNN(NNBase):
         NNBase.__init__(self, param_dims, param_dims_sparse, 
                         alpha=alpha, rseed=rseed)
                         
-        self.H = [None] * (self.n_layers - 1)
+        self.H = [None] * self.n_layers
         self.W = [None] * self.n_layers
         self.b = [None] * self.n_layers
         
-        self.dH = [None] * (self.n_layers - 1)
+        self.dH = [None] * self.n_layers
         self.dW = [None] * self.n_layers
         self.db = [None] * self.n_layers
         for i in xrange(1, self.n_layers):
@@ -214,44 +228,65 @@ class SoftmaxRNN(NNBase):
             self.dW[i] = self.grads['W_%d'%i]
             self.db[i] = self.grads['b_%d'%i]
             
-        for i in xrange(1, self.n_layers):
-            if i < self.n_layers-1:
-                self.H[i][:] = random_weight_matrix(layer_dims[i], layer_dims[i])            
-            self.W[i][:] = random_weight_matrix(layer_dims[i], layer_dims[i-1])
-            
+        self._w_filler = WEIGHT_FILLER[w_filler]
+        self._h_filler = WEIGHT_FILLER[h_filler]
+        
+        for i in xrange(1, self.n_layers):            
+            self.W[i][:] = self._w_filler(layer_dims[i], layer_dims[i-1])
+        for i in xrange(1, self.n_layers-1):
+            self.H[i][:] = self._h_filler(layer_dims[i], layer_dims[i])
 
     def _acc_grads(self, xs, ys):
         T = len(xs)
-        h = [[np.zeros(d)] for d in self.layer_dims[:-1]]
+        h = [[np.zeros(d)] for d in self.layer_dims]
         y_hat = [None]
+        n = self.n_layers
         
         for t in xrange(1, T+1):
-            h[0].append(make_onehot(xs[t-1], self.layer_dims[0]))
-            for l in xrange(1, self.n_layers-1):
-                h[l].append(sigmoid(self.H[l].dot(h[l][t-1]) + self.W[l].dot(h[l-1][t]) + self.b[l]))
-            y_hat.append(softmax(self.W[self.n_layers-1].dot(h[self.n_layers-2][t]) + self.b[self.n_layers-1]))
+            h[0].append(xs[t-1])
+            for l in xrange(1, n-1):
+                h[l].append(self._activation(self.H[l].dot(h[l][t-1]) + 
+                    self.W[l].dot(h[l-1][t]) + self.b[l]))
+                 
+            y_hat.append(softmax(self.W[-1].dot(h[-2][t]) + self.b[-1]))
         
         delta = [np.zeros(d) for d in self.layer_dims]
         gamma = [None for d in self.layer_dims[:-1]]
         for t in xrange(T, 0, -1):
-            delta[self.n_layers-1] = y_hat[t].copy()
-            delta[self.n_layers-1][ys[t-1]] -= 1
+            delta[-1] = y_hat[t].copy()
+            delta[-1][ys[t-1]] -= 1
             
-            self.dW[self.n_layers-1] += np.outer(delta[self.n_layers-1], h[self.n_layers-2][t])
-            self.db[self.n_layers-1] += delta[self.n_layers-1].copy()
+            self.dW[-1] += np.outer(delta[-1], h[-2][t])
+            self.db[-1] += delta[-1].copy()
             
-            for l in xrange(self.n_layers-2, 0, -1):
-                delta[l] = h[l][t] * (1 - h[l][t]) * self.W[l+1].T.dot(delta[l+1])
+            for l in xrange(n-2, 0, -1):
+                df = self._derivative(h[l][t])
+                delta[l] = df * self.W[l+1].T.dot(delta[l+1])
                 if t == T:
                     gamma[l] = delta[l].copy()
-                elif l == self.n_layers-2:
-                    gamma[l] = delta[l] + h[l][t] * (1 - h[l][t]) * self.H[l].T.dot(gamma[l])
+                elif l == n-2:
+                    gamma[l] = delta[l] + df * self.H[l].T.dot(gamma[l])
                 else:
-                    gamma[l] = delta[l] + h[l][t] * (1 - h[l][t]) * (self.H[l].T.dot(gamma[l]) + self.W[l+1].T.dot(gamma[l+1] - delta[l+1]))
+                    gamma[l] = delta[l] + df * (self.H[l].T.dot(gamma[l]) + 
+                        self.W[l+1].T.dot(gamma[l+1] - delta[l+1]))
+                        
                 self.dH[l] += np.outer(gamma[l], h[l][t-1])
                 self.dW[l] += np.outer(gamma[l], h[l-1][t])
                 self.db[l] += gamma[l]
+                
+    def _apply_grad_acc(self, alpha=1.0):
+        """
+        Update parameters with accumulated gradients.
 
+        alpha can be a scalar (as in SGD), or a vector
+        of the same length as the full concatenated
+        parameter vector (as in e.g. AdaGrad)
+        """
+        # Dense updates
+        if self._grad_clipping:
+            self.grads.full *= 5.0 / np.linalg.norm(self.grads.full, ord=2)  
+        self.params.full -= alpha * self.grads.full
+            
     def compute_seq_loss(self, xs, ys):
         """
         Compute the total cross-entropy loss
@@ -260,22 +295,23 @@ class SoftmaxRNN(NNBase):
         """
 
         J = 0
-        h = [np.zeros(d) for d in self.layer_dims[:-1]]
+        h = [np.zeros(d) for d in self.layer_dims]
         for t in xrange(1, len(xs)+1):
-            h[0] = make_onehot(xs[t-1], self.layer_dims[0])
+            h[0] = xs[t-1].copy()
             for l in xrange(1, self.n_layers - 1):
-                h[l] = sigmoid(self.H[l].dot(h[l]) + self.W[l].dot(h[l-1]) + self.b[l])
-            J += -np.log(softmax(self.W[self.n_layers-1].dot(h[self.n_layers-2]) + 
-            self.b[self.n_layers-1])[ys[t-1]])
+                z = self.H[l].dot(h[l]) + self.W[l].dot(h[l-1]) + self.b[l]
+                h[l] = self._activation(z)
+                
+            J += -np.log(softmax(self.W[-1].dot(h[-2]) + self.b[-1])[ys[t-1]])
+            
         return J
-
 
     def compute_loss(self, X, Y):
         """
         Compute total loss over a dataset.
         (wrapper for compute_seq_loss)
         """
-        if not isinstance(X[0], np.ndarray): # single example
+        if not isinstance(X[0][0], np.ndarray): # single example
             return self.compute_seq_loss(X, Y)
         else: # multiple examples
             return sum([self.compute_seq_loss(xs,ys)
@@ -289,7 +325,43 @@ class SoftmaxRNN(NNBase):
         ntot = sum(map(len,Y))
         return J / float(ntot)
 
-
+class RNNLM(SoftmaxRNN):      
+    def __init__(self, filename, hidden_dims = (50,), **kwargs):
+        self._sentences = []
+        self._word_to_num = {u'<s>':0, u'</s>':1}
+        with open(filename, 'r') as fp:
+            for line in fp:
+                raw_sentence = list(jieba.cut(line[:-1]))
+                for word in raw_sentence:
+                    if word not in self._word_to_num:
+                        self._word_to_num[word] = len(self._word_to_num)
+                self._sentences.append([0] + list(self._word_to_num[w] 
+                    for w in raw_sentence) + [1])
+                
+        self._num_to_word = {self._word_to_num[word]: word 
+            for word in self._word_to_num}
+                
+        n_words = len(self._word_to_num)
+        layer_dims = (n_words,) + hidden_dims + (n_words,)
+        
+        super(RNNLM, self).__init__(layer_dims, **kwargs)
+        
+    def start_training(self, max_iters = 100000,
+                       alphaiter=None, printevery=100, 
+                       costevery=1000, devidx=None):
+        X, Y = [], []
+        n_words = len(self._word_to_num)
+        for st in self._sentences:
+            X.append(np.array(list(make_onehot(w, n_words) for w in st[:-1])))
+            Y.append(np.array(st[1:]))
+            
+        X = np.array(X, dtype=object)
+        Y = np.array(Y, dtype=object)
+                
+        self.train_sgd(X, Y, idxiter=self.randomiter(max_iters, len(X)), 
+                       alphaiter=alphaiter, printevery=printevery, 
+                       costevery=costevery, devidx=devidx)
+        
     def generate_sequence(self, init, end, maxlen=100):
         """
         Generate a sequence from the language model,
@@ -307,13 +379,20 @@ class SoftmaxRNN(NNBase):
         """
 
         J = 0
-        h = [np.zeros(d) for d in self.layer_dims[:-1]]
+        h = [np.zeros(d) for d in self.layer_dims]
         ys = [init]
-        while ys[-1] != end:
+        while ys[-1] != end and len(ys) < maxlen:
             h[0] = make_onehot(ys[-1], self.layer_dims[0])
             for l in xrange(1, self.n_layers - 1):
-                h[l] = sigmoid(self.H[l].dot(h[l]) + self.W[l].dot(h[l-1]) + self.b[l])
-            p = softmax(self.W[self.n_layers-1].dot(h[self.n_layers-2]) + self.b[self.n_layers-1])
+                z = self.H[l].dot(h[l]) + self.W[l].dot(h[l-1]) + self.b[l]
+                h[l] = self._activation(z)
+                    
+            p = softmax(self.W[-1].dot(h[-2]) + self.b[-1])
             ys.append(multinomial_sample(p))
             J += -np.log(p[ys[-1]])
+            
         return ys, J
+
+    def generate_sentence(self, init, end):
+        st, loss = self.generate_sequence(init, end)
+        return ''.join(self._num_to_word[w] for w in st)
