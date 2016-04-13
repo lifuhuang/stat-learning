@@ -14,7 +14,7 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 
 class Utils:
     @staticmethod
-    def collect_file_paths(root_dir, max_num = None):    
+    def collect_file_paths(root_dir, max_num = None):  
         result = []
         i = 0
         for dirpath, dirnames, filenames in os.walk(root_dir):
@@ -22,22 +22,11 @@ class Utils:
                 i += 1
                 if max_num and i > max_num:  
                     break
+                
                 result.append(os.path.join(dirpath, filename))
+                
         return result
         
-    @staticmethod
-    def get_corpus(file_paths, verbose = True):   
-        corpus = []
-        for i in xrange(len(file_paths)):
-            file_path = file_paths[i]
-            if verbose:
-                print 'Processing', file_path, 
-            with open(file_path) as f:
-                corpus.append(' '.join(jieba.cut(f.read())))
-            if verbose:
-                print 'Done'
-        return corpus
-
     @staticmethod
     def short_id(path):
         return os.path.splitext(os.path.basename(path))[0]
@@ -50,6 +39,9 @@ class Utils:
     def long_id(path):
         return path
  
+def jieba_tokenizer(sent):
+    return jieba.cut(sent)
+ 
 class TfidfClassifier:
     def __init__(self):
         self.fitted = False
@@ -60,21 +52,29 @@ class TfidfClassifier:
                              id_generator = None, verbose = True):
         if not id_generator:
             id_generator = Utils.short_id
+            
         return self.fit_sample_files(Utils.collect_file_paths(sample_dir, max_num),
                                      id_generator, verbose)
             
     def fit_sample_files(self, file_paths, id_generator = None, verbose = True):
         if not id_generator:
             id_generator = Utils.short_id
+            
         if verbose:
             print 'Building corpus...'
-        corpus = Utils.get_corpus(file_paths, verbose)
+        
+        corpus = []
+        for file_path in file_paths:
+            with open(file_path, 'r') as fp:
+                 corpus.append(fp.read())
+            
         if verbose:
             print 'Done! get', len(corpus), 'sample(s) in total.'
         
         if verbose:
             print 'Generating tf-idf matrix...' 
-        tv = TfidfVectorizer()
+            
+        tv = TfidfVectorizer(tokenizer=jieba_tokenizer)
         self.tfidf_matrix = tv.fit_transform(corpus)
         self.vectorizer = tv
         if verbose:
@@ -83,6 +83,7 @@ class TfidfClassifier:
         self.id_mapping = dict()   
         for i in xrange(len(file_paths)):
             self.id_mapping[id_generator(file_paths[i])] = i
+            
         self.fitted = True
         
     def check_fitted(self):        
@@ -97,6 +98,7 @@ class TfidfClassifier:
     def load_parameters(self, target):
         with open(target, 'r') as f:
             (self.vectorizer, self.id_mapping, self.tfidf_matrix) = pickle.load(f) 
+            
         self.fitted = True
         
     def get_feature_count(self):
@@ -117,7 +119,7 @@ class TfidfClassifier:
         
     def calculate_tfidf(self, text):
         self.check_fitted()
-        return self.vectorizer.transform([' '.join(jieba.cut(text))]).toarray()
+        return self.vectorizer.transform([text]).toarray()
         
     def get_sample_vector(self, sample_id):
         self.check_fitted()

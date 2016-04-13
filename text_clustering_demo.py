@@ -38,17 +38,17 @@ if __name__ == '__main__':
         text = f.read()
     questions, answers = extract_qa_pairs(text)
 
-    tv = TfidfVectorizer()    
-    X = tv.fit_transform(' '.join(jieba.cut(ans)) for ans in answers)
+    tv = TfidfVectorizer(tokenizer=jieba.cut)    
+    X = tv.fit_transform(answers)
     if args.n_dims:
-        print 'Reducing dimension from %d to %d...' % (X.shape[1], 
-                                                       args.n_dims),
+        print 'Reducing dimension from %d to %d...' % (X.shape[1], args.n_dims),
         U, s, Vt = sp.sparse.linalg.svds(X, k=args.n_dims)
         X = X.dot(Vt.T)
         print 'Done!'
     
     print 'Clustering...',
     km = KMeans(n_clusters = args.n_clusters)
+    ap = AffinityPropagation()
     km.fit(X)
     print 'Done!'
     
