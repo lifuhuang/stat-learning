@@ -54,8 +54,8 @@ if __name__ == '__main__':
         f.write('\n'.join(answers))
 
     print 'Clustering questions...'
-    tv_qst = TfidfVectorizer()
-    X_qst = tv_qst.fit_transform(map(lambda t: ' '.join(jieba.cut(t)), questions))
+    tv_qst = TfidfVectorizer(tokenizer=jieba.cut)
+    X_qst = tv_qst.fit_transform(questions)
     km_qst = KMeans(n_clusters = args.n_qst_clusters)
     km_qst.fit(X_qst)      
     print 'Finish clustering questions, inertia = %d' % km_qst.inertia_
@@ -77,10 +77,10 @@ if __name__ == '__main__':
     print 'All %d question clusters have been generated!' % args.n_qst_clusters
         
     print 'Clustering answers...'  
-    tv_ans = TfidfVectorizer()
-    X_ans = tv_ans.fit_transform(map(lambda t: ' '.join(jieba.cut(t)), answers))
+    tv_ans = TfidfVectorizer(tokenizer=jieba.cut)
+    X_ans = tv_ans.fit_transform(answers)
     km_ans = KMeans(n_clusters = args.n_ans_clusters)
-    km_ans.fit(X_ans)  
+    km_ans.fit(X_ans)
     print 'Finish clustering answers, inertia = %d' % km_ans.inertia_
     clustered_ans = [[] for i in xrange(args.n_ans_clusters)]
     for i in xrange(len(answers)):
