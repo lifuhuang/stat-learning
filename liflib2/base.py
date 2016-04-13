@@ -11,6 +11,11 @@ import cPickle as pickle
 import glob
 import os.path as op
 import math
+import matplotlib.pyplot as plt
+
+def plot_matrix(x, **kwargs):
+    indices = np.indices(x.shape)
+    plt.contourf(indices[0], indices[1], x, **kwargs)   
 
 def identity(x):
     '''Returns the value unchanged.'''
@@ -153,7 +158,7 @@ def gaussian_weight_filler(m, n):
 
 WEIGHT_FILLER = {'xavier': xavier_weight_filler,
                  'identity': identity_weight_filler,
-                 'gaussian_weight_filler': gaussian_weight_filler}
+                 'gaussian': gaussian_weight_filler}
                  
 class MultinomialSampler(object):
     '''
