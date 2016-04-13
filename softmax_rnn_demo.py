@@ -8,5 +8,5 @@ from liflib2.dl import RNNLM
 
 filename = '/home/lifu/text'
 
-model = RNNLM(filename, (50, ))
-model.start_training()
+model = ChineseRNNLM(filename, (50, 50))
+model.start_training(alphaiter=model.annealiter(0.05, 0000))
