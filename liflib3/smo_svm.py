@@ -10,11 +10,11 @@ import numpy as np
 import matplotlib.pyplot as plt
 import functools
 
-class lifsvm:
+class SmoSvm:
     eps = 1e-7
     tol = 1e-3
     def __init__(self, X_train, y_train, C, kernel = None):
-        '''Initializes a new lifsvm trained on given training set and parameters.
+        '''Initializes a new SmoSvm trained on given training set and parameters.
         '''
         self.kernel = kernel if kernel else self.linear_kernel
         self.c = C
@@ -152,9 +152,9 @@ if __name__ == '__main__':
     y_train = np.array(list(map(lambda x: x * 2 - 1, np.fromfile('data/regression/y.dat', sep = ' ')))).reshape(-1, 1)
     
     m, n = X_train.shape
-    kernel = lifsvm.linear_kernel
-    #kernel = functools.partial(lifsvm.gaussian_kernel, tau = 0.25)
-    svm = lifsvm(X_train, y_train, 1, kernel)
+    kernel = SmoSvm.linear_kernel
+    #kernel = functools.partial(SmoSvm.gaussian_kernel, tau = 0.25)
+    svm = SmoSvm(X_train, y_train, 1, kernel)
     
     cnt = 0
     for i in range(m):
