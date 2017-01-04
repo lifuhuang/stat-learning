@@ -1,6 +1,6 @@
 LIFLIB 
 ====
-Collection of machine learning algorithms implemented in Python. Enjoy!)
+Collection of machine learning algorithms implemented in Python.
 
 
 
