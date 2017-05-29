@@ -1,6 +1,6 @@
-LIFLIB 
+stat-learning
 ====
-Collection of machine learning algorithms implemented in Python.
+Collection of statistical machine learning algorithms implemented in Python.
 
 
 
